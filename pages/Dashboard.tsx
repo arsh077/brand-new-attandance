@@ -2,6 +2,7 @@
 import React from 'react';
 import { UserRole, Employee, AttendanceRecord, LeaveRequest, AttendanceStatus } from '../types';
 import DashboardStats from '../components/DashboardStats';
+import RealtimeAttendance from '../components/RealtimeAttendance';
 
 interface DashboardProps {
   role: UserRole;
@@ -73,10 +74,15 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
       ]} />
 
       {isAdmin && (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden animate-slide-up">
-          <div className="p-6 border-b border-gray-100 bg-indigo-50/30">
-            <h3 className="text-sm font-black text-indigo-900 uppercase tracking-widest">End of Month Payroll Report</h3>
-          </div>
+        <>
+          {/* Real-time Attendance Tracker */}
+          <RealtimeAttendance employees={employees} attendance={attendance} />
+
+          {/* Monthly Payroll Report */}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden animate-slide-up">
+            <div className="p-6 border-b border-gray-100 bg-indigo-50/30">
+              <h3 className="text-sm font-black text-indigo-900 uppercase tracking-widest">End of Month Payroll Report</h3>
+            </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
@@ -102,6 +108,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
             </table>
           </div>
         </div>
+        </>
       )}
 
       {!isAdmin && (
