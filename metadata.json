@@ -1,0 +1,7 @@
+{
+  "name": "Legal Success India Attendance Portal",
+  "description": "A comprehensive employee attendance, leave, and team management system with real-time tracking, automated notifications, and monthly analytics.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
