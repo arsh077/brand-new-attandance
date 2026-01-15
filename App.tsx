@@ -57,30 +57,46 @@ const App: React.FC = () => {
   }, [employees, attendance]);
 
   const handleLogin = (role: UserRole, email: string) => {
-    const user = employees.find(e => e.email.toLowerCase() === email.toLowerCase());
+    // First, ensure employees are loaded from INITIAL_EMPLOYEES if not in state
+    const currentEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
     
-    if (user) {
-      // Create auth token for session
-      const authUser = AUTHORIZED_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const user = currentEmployees.find(e => e.email.toLowerCase() === email.toLowerCase());
+    
+    if (!user) {
+      // If user not found, reload from INITIAL_EMPLOYEES and try again
+      setEmployees(INITIAL_EMPLOYEES);
+      localStorage.setItem('ls_employees', JSON.stringify(INITIAL_EMPLOYEES));
       
-      if (authUser) {
-        const token = btoa(`${authUser.email}:${authUser.password}`);
-        localStorage.setItem('auth_token', token);
+      const userRetry = INITIAL_EMPLOYEES.find(e => e.email.toLowerCase() === email.toLowerCase());
+      if (!userRetry) {
+        alert('User not found. Please contact administrator.');
+        return;
       }
       
-      // Set user in auth service
-      authService.login(role);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Force update state - this is critical
-      setCurrentUser(user);
-      setActiveTab('dashboard');
-      
-      // Force re-render
-      window.location.hash = '#dashboard';
-    } else {
-      alert('User not found in employee list. Please contact administrator.');
+      // Use the found user from retry
+      completeLogin(userRetry, role, email);
+      return;
     }
+    
+    completeLogin(user, role, email);
+  };
+
+  const completeLogin = (user: Employee, role: UserRole, email: string) => {
+    // Create auth token for session
+    const authUser = AUTHORIZED_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
+    
+    if (authUser) {
+      const token = btoa(`${authUser.email}:${authUser.password}`);
+      localStorage.setItem('auth_token', token);
+    }
+    
+    // Set user in auth service
+    authService.login(role);
+    localStorage.setItem('user', JSON.stringify(user));
+    
+    // Force update state
+    setCurrentUser(user);
+    setActiveTab('dashboard');
   };
 
   const handleLogout = () => {
