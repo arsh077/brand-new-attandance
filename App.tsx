@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import Attendance from './pages/Attendance';
 import Leaves from './pages/Leaves';
 import Employees from './pages/Employees';
+import Reports from './pages/Reports';
 import Login from './pages/Login';
 
 const App: React.FC = () => {
@@ -287,6 +288,11 @@ const App: React.FC = () => {
           requests={leaveRequests} 
           onApply={(r) => setLeaveRequests([r, ...leaveRequests])} 
           onAction={(id, s) => setLeaveRequests(leaveRequests.map(r => r.id === id ? {...r, status: s} : r))} 
+        />;
+      case 'reports':
+        return <Reports 
+          employees={employees} 
+          attendance={attendance} 
         />;
       case 'employees':
         return <Employees 
