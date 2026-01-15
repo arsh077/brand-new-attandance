@@ -21,25 +21,9 @@ const App: React.FC = () => {
   
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => {
     const saved = localStorage.getItem('ls_attendance');
-    // Generate some history for Jan 2026 for demo
-    if (!saved) {
-      const history: AttendanceRecord[] = [];
-      INITIAL_EMPLOYEES.forEach(emp => {
-        for(let d=1; d < 15; d++) {
-          const date = `2026-01-${d.toString().padStart(2, '0')}`;
-          history.push({
-            id: `ATT_${emp.id}_${d}`,
-            employeeId: emp.id,
-            date,
-            clockIn: '09:05 AM',
-            clockOut: '06:10 PM',
-            status: d % 7 === 0 ? AttendanceStatus.ABSENT : (d % 10 === 0 ? AttendanceStatus.LATE : AttendanceStatus.PRESENT)
-          });
-        }
-      });
-      return history;
-    }
-    return JSON.parse(saved);
+    // Start fresh - no demo data
+    // Real attendance will be recorded from February onwards
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
@@ -53,6 +37,17 @@ const App: React.FC = () => {
     return user;
   });
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  // Clear old demo data on first load (one-time reset)
+  useEffect(() => {
+    const resetDone = localStorage.getItem('data_reset_feb_2026');
+    if (!resetDone) {
+      console.log('🔄 Resetting data for February 2026 fresh start...');
+      localStorage.removeItem('ls_attendance');
+      localStorage.setItem('data_reset_feb_2026', 'true');
+      console.log('✅ Data reset complete. Fresh start from February!');
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('ls_employees', JSON.stringify(employees));

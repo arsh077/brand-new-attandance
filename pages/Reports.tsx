@@ -23,8 +23,9 @@ interface MonthlyReport {
 }
 
 const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  // Default to February 2026 (month index 1)
+  const [selectedMonth, setSelectedMonth] = useState(1); // February
+  const [selectedYear, setSelectedYear] = useState(2026);
   const [reportData, setReportData] = useState<MonthlyReport[]>([]);
 
   const months = [
