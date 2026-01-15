@@ -27,6 +27,11 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
     return () => clearInterval(timer);
   }, []);
 
+  // Force re-render when attendance prop changes
+  useEffect(() => {
+    console.log('📊 Attendance data updated, recalculating live data...');
+  }, [attendance]);
+
   useEffect(() => {
     // Calculate live attendance data
     const today = new Date().toISOString().split('T')[0];

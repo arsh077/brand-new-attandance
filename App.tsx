@@ -58,26 +58,42 @@ const App: React.FC = () => {
     
     // Broadcast attendance updates to other tabs
     realtimeService.broadcastAttendanceUpdate(attendance);
+    
+    // Also trigger a custom event for same-tab updates
+    window.dispatchEvent(new CustomEvent('attendance-changed', { 
+      detail: { attendance, timestamp: Date.now() } 
+    }));
   }, [employees, attendance]);
 
   // Setup real-time listeners
   useEffect(() => {
+    console.log('🔧 Setting up real-time listeners...');
+    
     // Listen for clock in events from other tabs
     const unsubClockIn = realtimeService.on('CLOCK_IN', (data: any) => {
       console.log('🟢 Real-time: Employee clocked in', data);
-      // Force re-render by updating state
-      setAttendance(prev => [...prev]);
+      // Reload from localStorage to get latest data
+      const storedAttendance = localStorage.getItem('ls_attendance');
+      if (storedAttendance) {
+        const parsedAttendance = JSON.parse(storedAttendance);
+        setAttendance(parsedAttendance);
+      }
     });
 
     // Listen for clock out events from other tabs
     const unsubClockOut = realtimeService.on('CLOCK_OUT', (data: any) => {
       console.log('🔴 Real-time: Employee clocked out', data);
-      // Force re-render by updating state
-      setAttendance(prev => [...prev]);
+      // Reload from localStorage to get latest data
+      const storedAttendance = localStorage.getItem('ls_attendance');
+      if (storedAttendance) {
+        const parsedAttendance = JSON.parse(storedAttendance);
+        setAttendance(parsedAttendance);
+      }
     });
 
     // Listen for attendance updates
     const unsubAttendance = realtimeService.on('ATTENDANCE_UPDATE', (data: any) => {
+      console.log('📊 Real-time: Attendance updated', data);
       // Sync attendance from other tabs
       const storedAttendance = localStorage.getItem('ls_attendance');
       if (storedAttendance) {
@@ -86,13 +102,39 @@ const App: React.FC = () => {
       }
     });
 
+    // Also listen to storage events (for cross-tab sync)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'ls_attendance' && e.newValue) {
+        console.log('💾 Storage changed: Syncing attendance');
+        setAttendance(JSON.parse(e.newValue));
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+
+    // Polling mechanism - check localStorage every 2 seconds for updates
+    // This ensures real-time sync even if BroadcastChannel fails
+    const pollInterval = setInterval(() => {
+      const storedAttendance = localStorage.getItem('ls_attendance');
+      if (storedAttendance) {
+        const parsedAttendance = JSON.parse(storedAttendance);
+        // Only update if data actually changed
+        if (JSON.stringify(parsedAttendance) !== JSON.stringify(attendance)) {
+          console.log('🔄 Polling: Detected attendance change, syncing...');
+          setAttendance(parsedAttendance);
+        }
+      }
+    }, 2000); // Check every 2 seconds
+
     // Cleanup listeners on unmount
     return () => {
       unsubClockIn();
       unsubClockOut();
       unsubAttendance();
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(pollInterval);
     };
-  }, []);
+  }, [attendance]);
 
   const handleLogin = (role: UserRole, email: string) => {
     // First, ensure employees are loaded from INITIAL_EMPLOYEES if not in state
