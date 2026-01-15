@@ -48,8 +48,8 @@ A comprehensive attendance management portal built for **Legal Success India Pri
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/arsh077/legal-success-india-attendance.git
-   cd legal-success-india-attendance
+   git clone https://github.com/arsh077/legal-success-india-attandnce.git
+   cd legal-success-india-attandnce
    ```
 
 2. **Install dependencies**
