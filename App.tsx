@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { UserRole, Employee, AttendanceRecord, LeaveRequest, LeaveStatus, AttendanceStatus } from './types';
 import { authService } from './services/authService';
 import { realtimeService } from './services/realtimeService';
+import { pusherService } from './services/pusherService';
 import { INITIAL_EMPLOYEES, AUTHORIZED_USERS } from './constants';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -55,8 +56,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('ls_employees', JSON.stringify(employees));
     localStorage.setItem('ls_attendance', JSON.stringify(attendance));
+    localStorage.setItem('last_update', Date.now().toString());
     
-    // Broadcast attendance updates to other tabs
+    // Broadcast attendance updates via ALL channels
+    pusherService.triggerAttendanceUpdate(attendance);
     realtimeService.broadcastAttendanceUpdate(attendance);
     
     // Also trigger a custom event for same-tab updates
@@ -65,44 +68,61 @@ const App: React.FC = () => {
     }));
   }, [employees, attendance]);
 
-  // Setup real-time listeners
+  // Setup real-time listeners (Pusher + BroadcastChannel + Polling)
   useEffect(() => {
     console.log('🔧 Setting up real-time listeners...');
     
-    // Listen for clock in events from other tabs
+    // PUSHER LISTENERS (Primary - Most Reliable)
+    const unsubPusherClockIn = pusherService.on('CLOCK_IN', (data: any) => {
+      console.log('🟢 Pusher: Employee clocked in', data);
+      const storedAttendance = localStorage.getItem('ls_attendance');
+      if (storedAttendance) {
+        setAttendance(JSON.parse(storedAttendance));
+      }
+    });
+
+    const unsubPusherClockOut = pusherService.on('CLOCK_OUT', (data: any) => {
+      console.log('🔴 Pusher: Employee clocked out', data);
+      const storedAttendance = localStorage.getItem('ls_attendance');
+      if (storedAttendance) {
+        setAttendance(JSON.parse(storedAttendance));
+      }
+    });
+
+    const unsubPusherAttendance = pusherService.on('ATTENDANCE_UPDATE', (data: any) => {
+      console.log('📊 Pusher: Attendance updated', data);
+      const storedAttendance = localStorage.getItem('ls_attendance');
+      if (storedAttendance) {
+        setAttendance(JSON.parse(storedAttendance));
+      }
+    });
+
+    // BROADCAST CHANNEL LISTENERS (Backup)
     const unsubClockIn = realtimeService.on('CLOCK_IN', (data: any) => {
-      console.log('🟢 Real-time: Employee clocked in', data);
-      // Reload from localStorage to get latest data
+      console.log('🟢 BroadcastChannel: Employee clocked in', data);
       const storedAttendance = localStorage.getItem('ls_attendance');
       if (storedAttendance) {
-        const parsedAttendance = JSON.parse(storedAttendance);
-        setAttendance(parsedAttendance);
+        setAttendance(JSON.parse(storedAttendance));
       }
     });
 
-    // Listen for clock out events from other tabs
     const unsubClockOut = realtimeService.on('CLOCK_OUT', (data: any) => {
-      console.log('🔴 Real-time: Employee clocked out', data);
-      // Reload from localStorage to get latest data
+      console.log('🔴 BroadcastChannel: Employee clocked out', data);
       const storedAttendance = localStorage.getItem('ls_attendance');
       if (storedAttendance) {
-        const parsedAttendance = JSON.parse(storedAttendance);
-        setAttendance(parsedAttendance);
+        setAttendance(JSON.parse(storedAttendance));
       }
     });
 
-    // Listen for attendance updates
     const unsubAttendance = realtimeService.on('ATTENDANCE_UPDATE', (data: any) => {
-      console.log('📊 Real-time: Attendance updated', data);
-      // Sync attendance from other tabs
+      console.log('📊 BroadcastChannel: Attendance updated', data);
       const storedAttendance = localStorage.getItem('ls_attendance');
       if (storedAttendance) {
-        const parsedAttendance = JSON.parse(storedAttendance);
-        setAttendance(parsedAttendance);
+        setAttendance(JSON.parse(storedAttendance));
       }
     });
 
-    // Also listen to storage events (for cross-tab sync)
+    // STORAGE EVENT LISTENER (Cross-tab sync)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'ls_attendance' && e.newValue) {
         console.log('💾 Storage changed: Syncing attendance');
@@ -112,29 +132,31 @@ const App: React.FC = () => {
     
     window.addEventListener('storage', handleStorageChange);
 
-    // Polling mechanism - check localStorage every 2 seconds for updates
-    // This ensures real-time sync even if BroadcastChannel fails
+    // POLLING MECHANISM (Fallback - checks every 2 seconds)
+    let lastUpdate = Date.now();
     const pollInterval = setInterval(() => {
       const storedAttendance = localStorage.getItem('ls_attendance');
-      if (storedAttendance) {
-        const parsedAttendance = JSON.parse(storedAttendance);
-        // Only update if data actually changed
-        if (JSON.stringify(parsedAttendance) !== JSON.stringify(attendance)) {
-          console.log('🔄 Polling: Detected attendance change, syncing...');
-          setAttendance(parsedAttendance);
-        }
+      const lastUpdateTime = localStorage.getItem('last_update');
+      
+      if (storedAttendance && lastUpdateTime && parseInt(lastUpdateTime) > lastUpdate) {
+        console.log('🔄 Polling: Detected attendance change, syncing...');
+        setAttendance(JSON.parse(storedAttendance));
+        lastUpdate = parseInt(lastUpdateTime);
       }
-    }, 2000); // Check every 2 seconds
+    }, 2000);
 
-    // Cleanup listeners on unmount
+    // Cleanup
     return () => {
+      unsubPusherClockIn();
+      unsubPusherClockOut();
+      unsubPusherAttendance();
       unsubClockIn();
       unsubClockOut();
       unsubAttendance();
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(pollInterval);
     };
-  }, [attendance]);
+  }, []);
 
   const handleLogin = (role: UserRole, email: string) => {
     // First, ensure employees are loaded from INITIAL_EMPLOYEES if not in state
@@ -197,7 +219,7 @@ const App: React.FC = () => {
       );
       setAttendance(updatedAttendance);
       
-      // Broadcast clock out event
+      // Broadcast clock out event via ALL channels
       const employee = employees.find(e => e.id === empId);
       if (employee) {
         const clockInTime = new Date(`${today} ${existing.clockIn}`);
@@ -205,6 +227,10 @@ const App: React.FC = () => {
         const duration = Math.round((clockOutTimeObj.getTime() - clockInTime.getTime()) / (1000 * 60));
         const durationStr = `${Math.floor(duration / 60)}h ${duration % 60}m`;
         
+        // Pusher (Primary)
+        pusherService.triggerClockOut(empId, employee.name, clockOutTime, durationStr);
+        
+        // BroadcastChannel (Backup)
         realtimeService.broadcastClockOut(empId, employee.name, clockOutTime, durationStr);
       }
     } else {
@@ -222,9 +248,13 @@ const App: React.FC = () => {
       };
       setAttendance(prev => [newRecord, ...prev]);
       
-      // Broadcast clock in event
+      // Broadcast clock in event via ALL channels
       const employee = employees.find(e => e.id === empId);
       if (employee) {
+        // Pusher (Primary)
+        pusherService.triggerClockIn(empId, employee.name, clockInTime, isLate);
+        
+        // BroadcastChannel (Backup)
         realtimeService.broadcastClockIn(empId, employee.name, clockInTime, isLate);
       }
     }
