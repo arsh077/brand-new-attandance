@@ -17,15 +17,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setError('');
 
-    console.log('Login attempt:', { email, password, selectedRole });
-    console.log('Available users:', AUTHORIZED_USERS);
-
     // Find user in authorized users list
     const user = AUTHORIZED_USERS.find(
       u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
     );
-
-    console.log('Found user:', user);
 
     if (!user) {
       setError('Invalid email or password. Access denied.');
@@ -38,8 +33,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
-    console.log('Login successful, calling onLogin');
-    // Login successful
+    // Login successful - call parent handler
     onLogin(user.role, user.email);
   };
 
