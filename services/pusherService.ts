@@ -11,7 +11,7 @@ class PusherService {
     const appKey = import.meta.env.VITE_PUSHER_APP_KEY || 'YOUR_PUSHER_APP_KEY';
     const cluster = import.meta.env.VITE_PUSHER_CLUSTER || 'ap2'; // Asia Pacific cluster
     
-    console.log('🔧 Initializing Pusher with:', { appKey: appKey.substring(0, 10) + '...', cluster });
+    console.log('🔧 Initializing Pusher with:', { appKey: appKey ? appKey.substring(0, 10) + '...' : 'NOT SET', cluster });
     
     if (appKey && appKey !== 'YOUR_PUSHER_APP_KEY') {
       try {
@@ -39,12 +39,15 @@ class PusherService {
         
         this.pusher.connection.bind('error', (err: any) => {
           console.error('❌ Pusher connection error:', err);
+          console.warn('⚠️ Falling back to localStorage + polling for cross-device sync');
+          console.warn('⚠️ Real-time notifications will work within same browser only');
         });
         
-        console.log('✅ Pusher initialized successfully');
+        console.log('✅ Pusher initialized (attempting connection...)');
         this.setupListeners();
       } catch (error) {
         console.error('❌ Pusher initialization failed:', error);
+        console.warn('⚠️ Using localStorage + polling fallback');
       }
     } else {
       console.warn('⚠️ Pusher credentials not found. Using fallback polling mechanism.');

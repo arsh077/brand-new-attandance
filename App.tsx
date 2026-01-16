@@ -199,7 +199,7 @@ const App: React.FC = () => {
     
     window.addEventListener('storage', handleStorageChange);
 
-    // POLLING MECHANISM (Fallback - checks every 2 seconds)
+    // POLLING MECHANISM (Fallback - checks every 1 second for faster sync)
     let lastUpdate = Date.now();
     const pollInterval = setInterval(() => {
       const storedAttendance = localStorage.getItem('ls_attendance');
@@ -210,7 +210,7 @@ const App: React.FC = () => {
         setAttendance(JSON.parse(storedAttendance));
         lastUpdate = parseInt(lastUpdateTime);
       }
-    }, 2000);
+    }, 1000); // Check every 1 second instead of 2
 
     // Cleanup
     return () => {
