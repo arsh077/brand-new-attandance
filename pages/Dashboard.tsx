@@ -16,6 +16,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leaves, currentUser, onClockToggle }) => {
   const isAdmin = role === UserRole.ADMIN;
   const today = new Date().toISOString().split('T')[0];
+  const [isClockingIn, setIsClockingIn] = React.useState(false);
   
   // Real-time attendance calculation
   const todayAttendance = attendance.filter(a => a.date === today);
@@ -30,6 +31,18 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
   // Check if current user is clocked in today
   const userTodayAttendance = attendance.find(a => a.employeeId === currentUser.id && a.date === today && !a.clockOut);
   const isClockedIn = !!userTodayAttendance;
+  
+  const handleClockToggle = () => {
+    if (isClockingIn) return; // Prevent double-click
+    
+    setIsClockingIn(true);
+    onClockToggle(currentUser.id);
+    
+    // Re-enable after 2 seconds
+    setTimeout(() => {
+      setIsClockingIn(false);
+    }, 2000);
+  };
 
   const adminStats = [
     { 
@@ -132,9 +145,12 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                 </p>
               </div>
               <button
-                onClick={() => onClockToggle(currentUser.id)}
+                onClick={handleClockToggle}
+                disabled={isClockingIn}
                 className={`px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center gap-3 ${
-                  isClockedIn 
+                  isClockingIn 
+                    ? 'bg-gray-400 cursor-not-allowed text-white' 
+                    : isClockedIn 
                     ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-100' 
                     : 'bg-green-500 hover:bg-green-600 text-white shadow-green-100'
                 }`}
@@ -146,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
                   )}
                 </svg>
-                {isClockedIn ? 'Clock Out' : 'Clock In'}
+                {isClockingIn ? 'Processing...' : isClockedIn ? 'Clock Out' : 'Clock In'}
               </button>
             </div>
           </div>
