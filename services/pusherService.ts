@@ -25,7 +25,7 @@ class PusherService {
           forceTLS: true
         });
 
-        // Subscribe to attendance channel
+        // Subscribe to attendance channel (public channel)
         this.channel = this.pusher.subscribe('attendance-channel');
         
         // Log connection state
