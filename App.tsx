@@ -4,6 +4,7 @@ import { UserRole, Employee, AttendanceRecord, LeaveRequest, LeaveStatus, Attend
 import { authService } from './services/authService';
 import { realtimeService } from './services/realtimeService';
 import { pusherService } from './services/pusherService';
+import { notificationService, Notification } from './services/notificationService';
 import { INITIAL_EMPLOYEES, AUTHORIZED_USERS } from './constants';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -12,6 +13,7 @@ import Leaves from './pages/Leaves';
 import Employees from './pages/Employees';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
+import NotificationBell from './components/NotificationBell';
 
 const App: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>(() => {
@@ -26,7 +28,10 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(() => {
+    const saved = localStorage.getItem('ls_leave_requests');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [currentUser, setCurrentUser] = useState<Employee | null>(() => {
     const user = authService.getCurrentUser();
     // Verify session is valid
@@ -37,6 +42,10 @@ const App: React.FC = () => {
     return user;
   });
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    const saved = localStorage.getItem('ls_notifications');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // Clear old demo data on first load (one-time reset)
   useEffect(() => {
@@ -52,6 +61,8 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('ls_employees', JSON.stringify(employees));
     localStorage.setItem('ls_attendance', JSON.stringify(attendance));
+    localStorage.setItem('ls_leave_requests', JSON.stringify(leaveRequests));
+    localStorage.setItem('ls_notifications', JSON.stringify(notifications));
     localStorage.setItem('last_update', Date.now().toString());
     
     // Broadcast attendance updates via ALL channels with actual data
@@ -62,11 +73,16 @@ const App: React.FC = () => {
     window.dispatchEvent(new CustomEvent('attendance-changed', { 
       detail: { attendance, timestamp: Date.now() } 
     }));
-  }, [employees, attendance]);
+  }, [employees, attendance, leaveRequests, notifications]);
 
   // Setup real-time listeners (Pusher + BroadcastChannel + Polling)
   useEffect(() => {
     console.log('🔧 Setting up real-time listeners...');
+    
+    // Subscribe to notification service
+    const unsubNotifications = notificationService.subscribe((notification) => {
+      setNotifications(prev => [notification, ...prev]);
+    });
     
     // PUSHER LISTENERS (Primary - Most Reliable for cross-device)
     const unsubPusherClockIn = pusherService.on('CLOCK_IN', (data: any) => {
@@ -78,6 +94,11 @@ const App: React.FC = () => {
           setAttendance(JSON.parse(storedAttendance));
         }
       }, 100);
+      
+      // Create notification for admin only
+      if (currentUser && currentUser.role === UserRole.ADMIN) {
+        notificationService.clockIn(data.employeeName, data.clockIn, data.isLate);
+      }
     });
 
     const unsubPusherClockOut = pusherService.on('CLOCK_OUT', (data: any) => {
@@ -88,6 +109,11 @@ const App: React.FC = () => {
           setAttendance(JSON.parse(storedAttendance));
         }
       }, 100);
+      
+      // Create notification for admin only
+      if (currentUser && currentUser.role === UserRole.ADMIN) {
+        notificationService.clockOut(data.employeeName, data.clockOut, data.duration);
+      }
     });
 
     const unsubPusherAttendance = pusherService.on('ATTENDANCE_UPDATE', (data: any) => {
@@ -98,6 +124,43 @@ const App: React.FC = () => {
         setAttendance(data.attendance);
         // Also update localStorage for persistence
         localStorage.setItem('ls_attendance', JSON.stringify(data.attendance));
+      }
+    });
+    
+    // LEAVE REQUEST LISTENERS
+    const unsubPusherLeaveRequest = pusherService.on('LEAVE_REQUEST', (data: any) => {
+      console.log('📝 Pusher: Leave request received', data);
+      // Reload leave requests
+      setTimeout(() => {
+        const storedLeaves = localStorage.getItem('ls_leave_requests');
+        if (storedLeaves) {
+          setLeaveRequests(JSON.parse(storedLeaves));
+        }
+      }, 100);
+      
+      // Create notification for admin/manager only
+      if (currentUser && (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER)) {
+        notificationService.leaveRequest(data.employeeName, data.leaveType, data.startDate, data.endDate);
+      }
+    });
+    
+    const unsubPusherLeaveAction = pusherService.on('LEAVE_ACTION', (data: any) => {
+      console.log('✅ Pusher: Leave action taken', data);
+      // Reload leave requests
+      setTimeout(() => {
+        const storedLeaves = localStorage.getItem('ls_leave_requests');
+        if (storedLeaves) {
+          setLeaveRequests(JSON.parse(storedLeaves));
+        }
+      }, 100);
+      
+      // Create notification for employee
+      if (currentUser && data.employeeId === currentUser.id) {
+        if (data.status === 'APPROVED') {
+          notificationService.leaveApproved(data.leaveType);
+        } else {
+          notificationService.leaveRejected(data.leaveType);
+        }
       }
     });
 
@@ -151,16 +214,19 @@ const App: React.FC = () => {
 
     // Cleanup
     return () => {
+      unsubNotifications();
       unsubPusherClockIn();
       unsubPusherClockOut();
       unsubPusherAttendance();
+      unsubPusherLeaveRequest();
+      unsubPusherLeaveAction();
       unsubClockIn();
       unsubClockOut();
       unsubAttendance();
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(pollInterval);
     };
-  }, []);
+  }, [currentUser]);
 
   const handleLogin = (role: UserRole, email: string) => {
     // First, ensure employees are loaded from INITIAL_EMPLOYEES if not in state
@@ -208,6 +274,15 @@ const App: React.FC = () => {
   const handleLogout = () => {
     authService.logout();
     setCurrentUser(null);
+  };
+  
+  // Notification handlers
+  const markNotificationAsRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+  
+  const clearAllNotifications = () => {
+    setNotifications([]);
   };
 
   // State Mutators
@@ -287,6 +362,7 @@ const App: React.FC = () => {
           attendance={attendance} 
           leaves={leaveRequests}
           currentUser={currentUser}
+          onClockToggle={onClockToggle}
         />;
       case 'attendance':
         return <Attendance 
@@ -299,8 +375,44 @@ const App: React.FC = () => {
           role={currentUser.role} 
           currentUser={currentUser} 
           requests={leaveRequests} 
-          onApply={(r) => setLeaveRequests([r, ...leaveRequests])} 
-          onAction={(id, s) => setLeaveRequests(leaveRequests.map(r => r.id === id ? {...r, status: s} : r))} 
+          onApply={(r) => {
+            setLeaveRequests([r, ...leaveRequests]);
+            
+            // Save to localStorage immediately
+            const updatedLeaves = [r, ...leaveRequests];
+            localStorage.setItem('ls_leave_requests', JSON.stringify(updatedLeaves));
+            localStorage.setItem('last_update', Date.now().toString());
+            
+            // Trigger Pusher event for leave request
+            pusherService.trigger('leave-request', {
+              employeeId: r.employeeId,
+              employeeName: r.employeeName,
+              leaveType: r.type,
+              startDate: r.startDate,
+              endDate: r.endDate,
+              timestamp: new Date().toISOString()
+            });
+          }} 
+          onAction={(id, s) => {
+            const request = leaveRequests.find(r => r.id === id);
+            const updatedLeaves = leaveRequests.map(r => r.id === id ? {...r, status: s} : r);
+            setLeaveRequests(updatedLeaves);
+            
+            // Save to localStorage immediately
+            localStorage.setItem('ls_leave_requests', JSON.stringify(updatedLeaves));
+            localStorage.setItem('last_update', Date.now().toString());
+            
+            // Trigger Pusher event for leave action
+            if (request) {
+              pusherService.trigger('leave-action', {
+                employeeId: request.employeeId,
+                employeeName: request.employeeName,
+                leaveType: request.type,
+                status: s,
+                timestamp: new Date().toISOString()
+              });
+            }
+          }} 
         />;
       case 'reports':
         return <Reports 
@@ -330,9 +442,11 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center space-x-8">
-            <button className="text-gray-300 hover:text-indigo-600 transition-colors">
-               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-            </button>
+            <NotificationBell 
+              notifications={notifications}
+              onMarkAsRead={markNotificationAsRead}
+              onClearAll={clearAllNotifications}
+            />
             <div className="h-8 w-px bg-gray-100"></div>
             <div className="flex items-center space-x-4">
               <div className="text-right">

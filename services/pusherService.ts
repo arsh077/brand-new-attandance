@@ -34,6 +34,9 @@ class PusherService {
   private setupListeners() {
     if (!this.channel) return;
 
+    // Enable client events for cross-device communication
+    this.pusher!.config.authEndpoint = undefined; // Client events don't need auth
+    
     // Listen for CLIENT events (cross-device)
     this.channel.bind('client-clock-in', (data: any) => {
       console.log('🟢 Pusher: Employee clocked in', data);
@@ -48,6 +51,16 @@ class PusherService {
     this.channel.bind('client-attendance-update', (data: any) => {
       console.log('📊 Pusher: Attendance updated', data);
       this.notifyListeners('ATTENDANCE_UPDATE', data);
+    });
+    
+    this.channel.bind('client-leave-request', (data: any) => {
+      console.log('📝 Pusher: Leave request received', data);
+      this.notifyListeners('LEAVE_REQUEST', data);
+    });
+    
+    this.channel.bind('client-leave-action', (data: any) => {
+      console.log('✅ Pusher: Leave action taken', data);
+      this.notifyListeners('LEAVE_ACTION', data);
     });
   }
 

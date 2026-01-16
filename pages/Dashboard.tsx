@@ -10,9 +10,10 @@ interface DashboardProps {
   attendance: AttendanceRecord[];
   leaves: LeaveRequest[];
   currentUser: Employee;
+  onClockToggle: (empId: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leaves, currentUser }) => {
+const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leaves, currentUser, onClockToggle }) => {
   const isAdmin = role === UserRole.ADMIN;
   const today = new Date().toISOString().split('T')[0];
   
@@ -25,6 +26,10 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
     new Date(l.startDate) <= new Date(today) && 
     new Date(l.endDate) >= new Date(today)
   ).length;
+  
+  // Check if current user is clocked in today
+  const userTodayAttendance = attendance.find(a => a.employeeId === currentUser.id && a.date === today && !a.clockOut);
+  const isClockedIn = !!userTodayAttendance;
 
   const adminStats = [
     { 
@@ -112,18 +117,54 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
       )}
 
       {!isAdmin && (
-        <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-8 text-white shadow-2xl animate-slide-up">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-indigo-100 font-bold uppercase text-xs tracking-widest mb-2">Announcement</p>
-              <h4 className="text-2xl font-black mb-4">Happy New Year 2026!</h4>
-              <p className="text-indigo-50/70 max-w-md">Please ensure all leave regularization for December 2025 is completed by Friday.</p>
-            </div>
-            <div className="bg-white/20 p-4 rounded-2xl">
-               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+        <>
+          {/* Clock In/Out Button for Employees */}
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-8 animate-slide-up">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-black text-gray-900 mb-2">Quick Attendance</h3>
+                <p className="text-gray-500 font-medium">
+                  {isClockedIn ? (
+                    <>You clocked in at <span className="font-bold text-green-600">{userTodayAttendance?.clockIn}</span></>
+                  ) : (
+                    'Clock in to start your workday'
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => onClockToggle(currentUser.id)}
+                className={`px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl flex items-center gap-3 ${
+                  isClockedIn 
+                    ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-100' 
+                    : 'bg-green-500 hover:bg-green-600 text-white shadow-green-100'
+                }`}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isClockedIn ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                  )}
+                </svg>
+                {isClockedIn ? 'Clock Out' : 'Clock In'}
+              </button>
             </div>
           </div>
-        </div>
+
+          {/* Announcement Card */}
+          <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-8 text-white shadow-2xl animate-slide-up">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-indigo-100 font-bold uppercase text-xs tracking-widest mb-2">Announcement</p>
+                <h4 className="text-2xl font-black mb-4">Happy New Year 2026!</h4>
+                <p className="text-indigo-50/70 max-w-md">Please ensure all leave regularization for December 2025 is completed by Friday.</p>
+              </div>
+              <div className="bg-white/20 p-4 rounded-2xl">
+                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
