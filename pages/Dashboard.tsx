@@ -19,7 +19,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
   
   // Real-time attendance calculation
   const todayAttendance = attendance.filter(a => a.date === today);
-  const presentToday = todayAttendance.filter(a => a.clockIn && !a.clockOut).length; // Currently clocked in
+  const presentToday = todayAttendance.filter(a => a.clockIn).length; // All who clocked in today
   const lateArrivals = todayAttendance.filter(a => a.status === AttendanceStatus.LATE).length;
   const onLeaveToday = leaves.filter(l => 
     l.status === 'APPROVED' && 

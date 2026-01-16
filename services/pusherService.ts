@@ -11,8 +11,15 @@ class PusherService {
     const appKey = import.meta.env.VITE_PUSHER_APP_KEY || 'YOUR_PUSHER_APP_KEY';
     const cluster = import.meta.env.VITE_PUSHER_CLUSTER || 'ap2'; // Asia Pacific cluster
     
+    console.log('🔧 Initializing Pusher with:', { appKey: appKey.substring(0, 10) + '...', cluster });
+    
     if (appKey && appKey !== 'YOUR_PUSHER_APP_KEY') {
       try {
+        // Enable logging in development
+        if (import.meta.env.DEV) {
+          Pusher.logToConsole = true;
+        }
+        
         this.pusher = new Pusher(appKey, {
           cluster: cluster,
           forceTLS: true
@@ -21,13 +28,27 @@ class PusherService {
         // Subscribe to attendance channel
         this.channel = this.pusher.subscribe('attendance-channel');
         
-        console.log('✅ Pusher connected successfully');
+        // Log connection state
+        this.pusher.connection.bind('state_change', (states: any) => {
+          console.log('🔄 Pusher state:', states.previous, '→', states.current);
+        });
+        
+        this.pusher.connection.bind('connected', () => {
+          console.log('✅ Pusher connected successfully');
+        });
+        
+        this.pusher.connection.bind('error', (err: any) => {
+          console.error('❌ Pusher connection error:', err);
+        });
+        
+        console.log('✅ Pusher initialized successfully');
         this.setupListeners();
       } catch (error) {
-        console.error('❌ Pusher connection failed:', error);
+        console.error('❌ Pusher initialization failed:', error);
       }
     } else {
       console.warn('⚠️ Pusher credentials not found. Using fallback polling mechanism.');
+      console.warn('⚠️ Set VITE_PUSHER_APP_KEY in .env.local or .env.production');
     }
   }
 
