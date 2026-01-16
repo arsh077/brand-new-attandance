@@ -54,7 +54,7 @@ const App: React.FC = () => {
     localStorage.setItem('ls_attendance', JSON.stringify(attendance));
     localStorage.setItem('last_update', Date.now().toString());
     
-    // Broadcast attendance updates via ALL channels
+    // Broadcast attendance updates via ALL channels with actual data
     pusherService.triggerAttendanceUpdate(attendance);
     realtimeService.broadcastAttendanceUpdate(attendance);
     
@@ -68,32 +68,40 @@ const App: React.FC = () => {
   useEffect(() => {
     console.log('🔧 Setting up real-time listeners...');
     
-    // PUSHER LISTENERS (Primary - Most Reliable)
+    // PUSHER LISTENERS (Primary - Most Reliable for cross-device)
     const unsubPusherClockIn = pusherService.on('CLOCK_IN', (data: any) => {
       console.log('🟢 Pusher: Employee clocked in', data);
-      const storedAttendance = localStorage.getItem('ls_attendance');
-      if (storedAttendance) {
-        setAttendance(JSON.parse(storedAttendance));
-      }
+      // Force reload from localStorage (will be updated by other device)
+      setTimeout(() => {
+        const storedAttendance = localStorage.getItem('ls_attendance');
+        if (storedAttendance) {
+          setAttendance(JSON.parse(storedAttendance));
+        }
+      }, 100);
     });
 
     const unsubPusherClockOut = pusherService.on('CLOCK_OUT', (data: any) => {
       console.log('🔴 Pusher: Employee clocked out', data);
-      const storedAttendance = localStorage.getItem('ls_attendance');
-      if (storedAttendance) {
-        setAttendance(JSON.parse(storedAttendance));
-      }
+      setTimeout(() => {
+        const storedAttendance = localStorage.getItem('ls_attendance');
+        if (storedAttendance) {
+          setAttendance(JSON.parse(storedAttendance));
+        }
+      }, 100);
     });
 
     const unsubPusherAttendance = pusherService.on('ATTENDANCE_UPDATE', (data: any) => {
       console.log('📊 Pusher: Attendance updated', data);
-      const storedAttendance = localStorage.getItem('ls_attendance');
-      if (storedAttendance) {
-        setAttendance(JSON.parse(storedAttendance));
+      // Use the actual attendance data from the event
+      if (data && data.attendance) {
+        console.log('📥 Syncing attendance from Pusher event:', data.attendance.length, 'records');
+        setAttendance(data.attendance);
+        // Also update localStorage for persistence
+        localStorage.setItem('ls_attendance', JSON.stringify(data.attendance));
       }
     });
 
-    // BROADCAST CHANNEL LISTENERS (Backup)
+    // BROADCAST CHANNEL LISTENERS (Backup - same browser only)
     const unsubClockIn = realtimeService.on('CLOCK_IN', (data: any) => {
       console.log('🟢 BroadcastChannel: Employee clocked in', data);
       const storedAttendance = localStorage.getItem('ls_attendance');
