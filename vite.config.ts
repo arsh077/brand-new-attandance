@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/brand-new-attandance/', // Updated for new GitHub repository
+    base: '/', // Use root for Vercel/Production deployment
     server: {
       port: 3000,
       host: '0.0.0.0',
