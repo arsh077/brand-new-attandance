@@ -18,87 +18,89 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [lastClickTime, setLastClickTime] = React.useState(0);
   const minClickDelay = 1000; // Minimum 1 second between clicks
-  
+
   // Real-time attendance calculation
   const todayAttendance = attendance.filter(a => a.date === today);
   const presentToday = todayAttendance.filter(a => a.clockIn).length;
   const lateArrivals = todayAttendance.filter(a => a.status === AttendanceStatus.LATE).length;
-  const onLeaveToday = leaves.filter(l => 
-    l.status === 'APPROVED' && 
-    new Date(l.startDate) <= new Date(today) && 
+  const onLeaveToday = leaves.filter(l =>
+    l.status === 'APPROVED' &&
+    new Date(l.startDate) <= new Date(today) &&
     new Date(l.endDate) >= new Date(today)
   ).length;
-  
+
   // Check if current user is clocked in today
   const userTodayAttendance = attendance.find(a => a.employeeId === currentUser.id && a.date === today && !a.clockOut);
   const isClockedIn = !!userTodayAttendance;
-  
+
   const handleClockToggle = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    
+
     // Check if already processing
     if (isProcessing) {
       console.log('Already processing, please wait...');
       return;
     }
-    
+
     // Check minimum delay between clicks
     const now = Date.now();
     if (now - lastClickTime < minClickDelay) {
       console.log('Too fast! Please wait...');
       return;
     }
-    
+
     setLastClickTime(now);
     processToggle();
   };
-  
+
   const processToggle = async () => {
     setIsProcessing(true);
-    
+
     try {
-      // Call the parent toggle function
-      onClockToggle(currentUser.id);
-      
-      // Show success feedback
-      console.log(isClockedIn ? 'Clocked Out Successfully!' : 'Clocked In Successfully!');
-      
-    } catch (error) {
+      // Call the parent toggle function and wait for Firebase result
+      const result = await Promise.race([
+        onClockToggle(currentUser.id),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase timeout. Check connection.')), 5000))
+      ]) as any;
+
+      if (result && result.success) {
+        // Show success feedback based on what actually happened
+        console.log(result.type === 'IN' ? '✅ Clocked In Successfully!' : '🔴 Clocked Out Successfully!');
+      }
+
+    } catch (error: any) {
       console.error('Error toggling attendance:', error);
     } finally {
-      // Re-enable after delay
-      setTimeout(() => {
-        setIsProcessing(false);
-      }, 1000);
+      setIsProcessing(false);
     }
   };
 
   const adminStats = [
-    { 
-      label: 'Total Staff', 
-      value: employees.length, 
-      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>, 
-      color: 'bg-blue-500' 
+    {
+      label: 'Total Staff',
+      value: employees.length,
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
+      color: 'bg-blue-500'
     },
-    { 
-      label: 'Present Today', 
-      value: presentToday, 
-      subValue: employees.length > 0 ? `${Math.round((presentToday/employees.length)*100)}%` : '0%', 
-      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>, 
-      color: 'bg-green-500' 
+    {
+      label: 'Present Today',
+      value: presentToday,
+      subValue: employees.length > 0 ? `${Math.round((presentToday / employees.length) * 100)}%` : '0%',
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+      color: 'bg-green-500'
     },
-    { 
-      label: 'On Leave', 
-      value: onLeaveToday, 
-      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>, 
-      color: 'bg-purple-500' 
+    {
+      label: 'On Leave',
+      value: onLeaveToday,
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+      color: 'bg-purple-500'
     },
-    { 
-      label: 'Late Arrivals', 
-      value: lateArrivals, 
-      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>, 
-      color: 'bg-orange-500' 
+    {
+      label: 'Late Arrivals',
+      value: lateArrivals,
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+      color: 'bg-orange-500'
     },
   ];
 
@@ -117,8 +119,8 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
       </div>
 
       <DashboardStats stats={isAdmin ? adminStats : [
-        { label: 'Your Balance', value: `${currentUser.leaveBalance.CASUAL} Days`, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>, color: 'bg-indigo-500' },
-        { label: 'Attended (Month)', value: attendance.filter(a => a.employeeId === currentUser.id).length, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>, color: 'bg-emerald-500' }
+        { label: 'Your Balance', value: `${currentUser.leaveBalance.CASUAL} Days`, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>, color: 'bg-indigo-500' },
+        { label: 'Attended (Month)', value: attendance.filter(a => a.employeeId === currentUser.id).length, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, color: 'bg-emerald-500' }
       ]} />
 
       {isAdmin && (
@@ -131,31 +133,31 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
             <div className="p-6 border-b border-gray-100 bg-indigo-50/30">
               <h3 className="text-sm font-black text-indigo-900 uppercase tracking-widest">End of Month Payroll Report</h3>
             </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Employee Name</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Days Present</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Approved Leaves</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {monthlyReport.map((rep, i) => (
-                  <tr key={i} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-gray-900 text-sm">{rep.name}</td>
-                    <td className="px-6 py-4 text-center text-sm font-black text-emerald-600">{rep.daysPresent}</td>
-                    <td className="px-6 py-4 text-center text-sm font-black text-purple-600">{rep.leavesTaken}</td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">Payroll Ready</span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Employee Name</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Days Present</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Approved Leaves</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {monthlyReport.map((rep, i) => (
+                    <tr key={i} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-gray-900 text-sm">{rep.name}</td>
+                      <td className="px-6 py-4 text-center text-sm font-black text-emerald-600">{rep.daysPresent}</td>
+                      <td className="px-6 py-4 text-center text-sm font-black text-purple-600">{rep.leavesTaken}</td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">Payroll Ready</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
         </>
       )}
 
@@ -178,37 +180,35 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
 
               {/* Single Toggle Switch */}
               <div className="flex items-center justify-center">
-                <div 
+                <div
                   onClick={handleClockToggle}
-                  className={`relative w-32 h-16 rounded-full transition-all duration-300 shadow-lg select-none ${
-                    isProcessing 
-                      ? 'bg-gray-400 cursor-not-allowed opacity-60' 
-                      : isClockedIn 
-                      ? 'bg-red-500 shadow-red-200 cursor-pointer hover:bg-red-600 hover:scale-105' 
-                      : 'bg-green-500 shadow-green-200 cursor-pointer hover:bg-green-600 hover:scale-105'
-                  } ${isProcessing ? 'animate-pulse' : ''}`}
-                  style={{ 
+                  className={`relative w-32 h-16 rounded-full transition-all duration-300 shadow-lg select-none ${isProcessing
+                      ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                      : isClockedIn
+                        ? 'bg-red-500 shadow-red-200 cursor-pointer hover:bg-red-600 hover:scale-105'
+                        : 'bg-green-500 shadow-green-200 cursor-pointer hover:bg-green-600 hover:scale-105'
+                    } ${isProcessing ? 'animate-pulse' : ''}`}
+                  style={{
                     pointerEvents: isProcessing ? 'none' : 'auto',
                     userSelect: 'none'
                   }}
                 >
                   {/* Toggle Circle */}
-                  <div className={`absolute top-2 w-12 h-12 bg-white rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
-                    isClockedIn ? 'translate-x-16' : 'translate-x-2'
-                  }`}>
+                  <div className={`absolute top-2 w-12 h-12 bg-white rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${isClockedIn ? 'translate-x-16' : 'translate-x-2'
+                    }`}>
                     {isProcessing ? (
                       <div className="w-6 h-6 border-3 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                     ) : (
                       <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         {isClockedIn ? (
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         ) : (
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                         )}
                       </svg>
                     )}
                   </div>
-                  
+
                   {/* Labels inside toggle */}
                   <div className="absolute inset-0 flex items-center justify-between px-4 text-white text-sm font-bold pointer-events-none">
                     <span className={`transition-opacity ${isClockedIn ? 'opacity-0' : 'opacity-100'}`}>IN</span>
@@ -219,13 +219,12 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
 
               {/* Status Text */}
               <div className="text-center">
-                <p className={`text-xl font-bold ${
-                  isProcessing 
-                    ? 'text-gray-500' 
-                    : isClockedIn 
-                    ? 'text-red-600' 
-                    : 'text-green-600'
-                }`}>
+                <p className={`text-xl font-bold ${isProcessing
+                    ? 'text-gray-500'
+                    : isClockedIn
+                      ? 'text-red-600'
+                      : 'text-green-600'
+                  }`}>
                   {isProcessing ? 'Processing...' : isClockedIn ? 'Currently Clocked In' : 'Ready to Clock In'}
                 </p>
               </div>
@@ -241,7 +240,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                 <p className="text-indigo-50/70 max-w-md">Please ensure all leave regularization for December 2025 is completed by Friday.</p>
               </div>
               <div className="bg-white/20 p-4 rounded-2xl">
-                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
               </div>
             </div>
           </div>

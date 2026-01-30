@@ -201,32 +201,43 @@ const App: React.FC = () => {
   };
 
   // State Mutators
-  const onClockToggle = (empId: string) => {
+  const onClockToggle = async (empId: string) => {
     console.log('🎯 Clock toggle for employee:', empId);
 
     const today = new Date().toISOString().split('T')[0];
     const existing = attendance.find(a => a.employeeId === empId && a.date === today && !a.clockOut);
 
-    if (existing) {
-      // Clock Out
-      console.log('🔴 Clocking out... (via Firebase)');
-      const clockOutTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    try {
+      if (existing) {
+        // Clock Out
+        console.log('🔴 Clocking out... (via Firebase)');
+        const clockOutTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-      // Firebase update
-      firebaseAttendanceService.clockOut(existing.id, clockOutTime);
-    } else {
-      // Clock In
-      console.log('🟢 Clocking in... (via Firebase)');
-      const now = new Date();
-      const isLate = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() > 40);
-      const clockInTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        // Firebase update
+        const result = await firebaseAttendanceService.clockOut(existing.id, clockOutTime);
+        if (!result.success) throw new Error('Firebase clock-out failed');
+        return { success: true, type: 'OUT' };
+      } else {
+        // Clock In
+        console.log('🟢 Clocking in... (via Firebase)');
+        const now = new Date();
+        const isLate = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() > 40);
+        const clockInTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
-      const employee = employees.find(e => e.id === empId);
-      if (employee) {
-        // Firebase create
-        firebaseAttendanceService.clockIn(empId, employee.name, clockInTime, isLate);
+        const employee = employees.find(e => e.id === empId);
+        if (employee) {
+          // Firebase create
+          const result = await firebaseAttendanceService.clockIn(empId, employee.name, clockInTime, isLate);
+          if (!result.success) throw new Error('Firebase clock-in failed');
+          return { success: true, type: 'IN' };
+        }
       }
+    } catch (error: any) {
+      console.error('❌ Clock toggle error:', error);
+      alert('Error: ' + (error.message || 'Check your internet connection and Firebase permissions.'));
+      return { success: false, error: error.message };
     }
+    return { success: false };
   };
 
   // Employee update handler with real-time sync
