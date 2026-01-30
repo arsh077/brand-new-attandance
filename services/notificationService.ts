@@ -1,5 +1,6 @@
-// Notification Service
-// Handles notification creation and management
+import { db } from './firebaseConfig';
+import { collection, query, where, onSnapshot, Timestamp, orderBy, limit } from 'firebase/firestore';
+import { UserRole } from '../types';
 
 export interface Notification {
   id: string;
@@ -13,76 +14,139 @@ export interface Notification {
 
 class NotificationService {
   private listeners: Set<(notification: Notification) => void> = new Set();
+  private cleanupFns: (() => void)[] = [];
+  private hasRequestedPermission = false;
 
-  // Subscribe to new notifications
+  constructor() {
+    this.requestPermission();
+  }
+
+  requestPermission() {
+    if (!this.hasRequestedPermission && 'Notification' in window && Notification.permission !== 'granted') {
+      Notification.requestPermission();
+      this.hasRequestedPermission = true;
+    }
+  }
+
+  // Initialize listeners based on role
+  initialize(userId: string, role: UserRole) {
+    this.cleanup(); // Remove existing listeners
+
+    // Timestamp to filter only new events
+    const startTime = Timestamp.now();
+
+    // 1. Listen for New Leave Requests (Admin & Manager)
+    if (role === UserRole.ADMIN || role === UserRole.MANAGER) {
+      const q = query(
+        collection(db, 'leaveRequests'),
+        where('createdAt', '>', startTime),
+        orderBy('createdAt', 'desc')
+      );
+
+      const unsub = onSnapshot(q, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const data = change.doc.data();
+            this.broadcast({
+              type: 'LEAVE_REQUEST',
+              title: 'New Leave Request',
+              message: `${data.employeeName} requested ${data.type} leave`,
+              employeeName: data.employeeName
+            });
+          }
+        });
+      });
+      this.cleanupFns.push(unsub);
+    }
+
+    // 2. Listen for My Leave Updates (Employee)
+    if (role === UserRole.EMPLOYEE) {
+      const q = query(
+        collection(db, 'leaveRequests'),
+        where('employeeId', '==', userId),
+        where('updatedAt', '>', startTime)
+      );
+
+      const unsub = onSnapshot(q, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'modified') {
+            const data = change.doc.data();
+            if (data.status === 'APPROVED') {
+              this.broadcast({
+                type: 'LEAVE_APPROVED',
+                title: 'Leave Approved',
+                message: `Your ${data.type} leave request was approved`
+              });
+            } else if (data.status === 'REJECTED') {
+              this.broadcast({
+                type: 'LEAVE_REJECTED',
+                title: 'Leave Rejected',
+                message: `Your ${data.type} leave request was rejected`
+              });
+            }
+          }
+        });
+      });
+      this.cleanupFns.push(unsub);
+    }
+
+    // 3. Listen for Late Arrivals (Admin) from Attendance
+    if (role === UserRole.ADMIN) {
+      const today = new Date().toISOString().split('T')[0];
+      const q = query(
+        collection(db, 'attendance'),
+        where('date', '==', today),
+        where('createdAt', '>', startTime)
+      );
+
+      const unsub = onSnapshot(q, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const data = change.doc.data();
+            if (data.status === 'LATE') {
+              this.broadcast({
+                type: 'CLOCK_IN',
+                title: 'Late Arrival Alert',
+                message: `${data.employeeName} clocked in Late at ${data.clockIn}`,
+                employeeName: data.employeeName
+              });
+            }
+          }
+        });
+      });
+      this.cleanupFns.push(unsub);
+    }
+  }
+
   subscribe(callback: (notification: Notification) => void) {
     this.listeners.add(callback);
     return () => this.listeners.delete(callback);
   }
 
-  // Create and broadcast a notification
-  create(notif: Omit<Notification, 'id' | 'timestamp' | 'read'>) {
+  private broadcast(notif: Omit<Notification, 'id' | 'timestamp' | 'read'>) {
     const notification: Notification = {
       ...notif,
-      id: `NOTIF${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toLocaleTimeString('en-IN', { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: true 
-      }),
+      id: `NOTIF-${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
       read: false
     };
 
-    // Notify all subscribers
-    this.listeners.forEach(callback => callback(notification));
+    // In-App Notification
+    this.listeners.forEach(cb => cb(notification));
 
-    return notification;
+    // Browser Notification
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new window.Notification(notification.title, {
+        body: notification.message,
+        icon: '/assets/logo.png'
+      });
+    }
   }
 
-  // Helper methods for specific notification types
-  clockIn(employeeName: string, clockIn: string, isLate: boolean) {
-    return this.create({
-      type: 'CLOCK_IN',
-      title: 'Employee Clocked In',
-      message: `${employeeName} clocked in at ${clockIn}${isLate ? ' (Late)' : ''}`,
-      employeeName
-    });
-  }
-
-  clockOut(employeeName: string, clockOut: string, duration: string) {
-    return this.create({
-      type: 'CLOCK_OUT',
-      title: 'Employee Clocked Out',
-      message: `${employeeName} clocked out at ${clockOut} (Duration: ${duration})`,
-      employeeName
-    });
-  }
-
-  leaveRequest(employeeName: string, leaveType: string, startDate: string, endDate: string) {
-    return this.create({
-      type: 'LEAVE_REQUEST',
-      title: 'New Leave Request',
-      message: `${employeeName} requested ${leaveType} leave from ${startDate} to ${endDate}`,
-      employeeName
-    });
-  }
-
-  leaveApproved(leaveType: string) {
-    return this.create({
-      type: 'LEAVE_APPROVED',
-      title: 'Leave Approved',
-      message: `Your ${leaveType} leave request has been approved`
-    });
-  }
-
-  leaveRejected(leaveType: string) {
-    return this.create({
-      type: 'LEAVE_REJECTED',
-      title: 'Leave Rejected',
-      message: `Your ${leaveType} leave request has been rejected`
-    });
+  cleanup() {
+    this.cleanupFns.forEach(fn => fn());
+    this.cleanupFns = [];
   }
 }
 
-// Export singleton
 export const notificationService = new NotificationService();

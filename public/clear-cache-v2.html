@@ -1,66 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clear Cache - Legal Success India</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">🔄 Clear Cache & Reload</h1>
-        <p class="text-gray-600 mb-6">Click the button below to clear your browser cache and reload the latest version of the attendance portal.</p>
-        
-        <button onclick="clearCacheAndReload()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all">
-            Clear Cache & Reload
-        </button>
-        
-        <div id="status" class="mt-4 text-sm text-gray-500"></div>
-        
-        <div class="mt-6 p-4 bg-blue-50 rounded-xl">
-            <h3 class="font-bold text-blue-900 mb-2">Manual Steps:</h3>
-            <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                <li>Press <kbd class="bg-white px-2 py-1 rounded">Ctrl + Shift + Delete</kbd></li>
-                <li>Select "Cached images and files"</li>
-                <li>Click "Clear data"</li>
-                <li>Reload the page</li>
-            </ol>
-        </div>
-    </div>
+<html>
 
+<head>
+    <title>Clear App Cache</title>
+</head>
+
+<body>
+    <h1>Clearing Cache...</h1>
+    <div id="status">Starting...</div>
     <script>
-        function clearCacheAndReload() {
-            const status = document.getElementById('status');
-            status.textContent = '🔄 Clearing cache...';
-            
-            // Clear localStorage
-            localStorage.clear();
-            sessionStorage.clear();
-            
-            // Clear service workers
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(registrations => {
-                    registrations.forEach(registration => registration.unregister());
-                });
+        async function clearAll() {
+            try {
+                // 1. Unregister Service Workers
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                }
+                document.getElementById('status').innerHTML += '<br>✅ Service Workers Unregistered';
+
+                // 2. Clear Caches
+                const cacheNames = await caches.keys();
+                for (let name of cacheNames) {
+                    await caches.delete(name);
+                }
+                document.getElementById('status').innerHTML += '<br>✅ Caches Cleared';
+
+                // 3. Clear LocalStorage
+                localStorage.clear();
+                document.getElementById('status').innerHTML += '<br>✅ LocalStorage Cleared';
+
+                document.getElementById('status').innerHTML += '<br>🚀 Done! Redirecting to App in 2 seconds...';
+                setTimeout(() => window.location.href = '/', 2000);
+            } catch (e) {
+                document.getElementById('status').innerHTML += '<br>❌ Error: ' + e.message;
             }
-            
-            // Clear cache storage
-            if ('caches' in window) {
-                caches.keys().then(names => {
-                    names.forEach(name => caches.delete(name));
-                });
-            }
-            
-            status.textContent = '✅ Cache cleared! Reloading...';
-            
-            // Force reload from server
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1000);
         }
-        
-        // Show current version
-        document.getElementById('status').textContent = 'Version: ' + new Date().toISOString();
+        clearAll();
     </script>
 </body>
+
 </html>

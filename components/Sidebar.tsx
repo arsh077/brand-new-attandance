@@ -15,6 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
     { id: 'dashboard', label: 'Dashboard', icon: ICONS.Dashboard, roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE] },
     { id: 'attendance', label: 'My Attendance', icon: ICONS.Attendance, roles: [UserRole.EMPLOYEE, UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'leaves', label: 'Leave Requests', icon: ICONS.Leaves, roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE] },
+    { id: 'analytics', label: 'Analytics', icon: ICONS.Reports, roles: [UserRole.ADMIN, UserRole.MANAGER] },
     { id: 'reports', label: 'Monthly Reports', icon: ICONS.Reports, roles: [UserRole.ADMIN] },
     { id: 'employees', label: 'Employee Mgmt', icon: ICONS.Users, roles: [UserRole.ADMIN] },
     { id: 'team', label: 'My Team', icon: ICONS.Users, roles: [UserRole.MANAGER] },
@@ -27,9 +28,9 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
     <div className="flex flex-col h-full bg-white border-r border-gray-200 w-64 shadow-sm transition-all duration-300">
       <div className="p-6 flex items-center space-x-3">
         <div className="w-12 h-12 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center overflow-hidden shadow-sm">
-          <img 
-            src="/assets/logo.png" 
-            alt="Legal Success India" 
+          <img
+            src="/assets/logo.png"
+            alt="Legal Success India"
             className="w-full h-full object-cover"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
@@ -48,11 +49,10 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${
-              activeTab === item.id
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${activeTab === item.id
                 ? 'bg-indigo-50 text-indigo-700'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
+              }`}
           >
             <span className={`${activeTab === item.id ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'} mr-3`}>
               {item.icon}
