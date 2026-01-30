@@ -20,7 +20,8 @@ class FirebaseAttendanceService {
      */
     async clockIn(employeeId: string, employeeName: string, clockInTime: string, isLate: boolean) {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
             const attendanceData = {
                 employeeId,
@@ -90,7 +91,8 @@ class FirebaseAttendanceService {
      * Get today's attendance records
      */
     subscribeToTodayAttendance(callback: (attendance: any[]) => void) {
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const q = query(
             this.attendanceCollection,
             where('date', '==', today),

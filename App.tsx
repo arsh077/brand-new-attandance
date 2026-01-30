@@ -204,7 +204,8 @@ const App: React.FC = () => {
   const onClockToggle = async (empId: string) => {
     console.log('🎯 Clock toggle for employee:', empId);
 
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const existing = attendance.find(a => a.employeeId === empId && a.date === today && !a.clockOut);
 
     try {
