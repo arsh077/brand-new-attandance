@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Version Check - Legal Success India</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-500 to-purple-600 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-2xl w-full">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-black text-gray-900 mb-2">🔍 Version Check</h1>
+            <p class="text-gray-600">Legal Success India Attendance Portal</p>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Version Info -->
+            <div class="bg-green-50 border-2 border-green-200 rounded-2xl p-6">
+                <h2 class="text-xl font-bold text-green-900 mb-4">✅ Latest Version Info</h2>
+                <div class="space-y-2 text-sm">
+                    <p><span class="font-bold">Version:</span> 8f60060</p>
+                    <p><span class="font-bold">Build Date:</span> January 16, 2026</p>
+                    <p><span class="font-bold">Features:</span> Notification Bell + Clock In Button</p>
+                    <p><span class="font-bold">Status:</span> <span class="text-green-600 font-bold">DEPLOYED</span></p>
+                </div>
+            </div>
+
+            <!-- Features Checklist -->
+            <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6">
+                <h2 class="text-xl font-bold text-blue-900 mb-4">📋 New Features Checklist</h2>
+                <div class="space-y-3">
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">1</div>
+                        <div>
+                            <p class="font-bold text-gray-900">Notification Bell Icon</p>
+                            <p class="text-sm text-gray-600">Top-right corner, next to profile name</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">2</div>
+                        <div>
+                            <p class="font-bold text-gray-900">Real-Time Notifications</p>
+                            <p class="text-sm text-gray-600">Clock in/out and leave request alerts</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">3</div>
+                        <div>
+                            <p class="font-bold text-gray-900">Clock In Button on Dashboard</p>
+                            <p class="text-sm text-gray-600">Employees can clock in from main page</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">4</div>
+                        <div>
+                            <p class="font-bold text-gray-900">Cross-Device Sync</p>
+                            <p class="text-sm text-gray-600">Works between mobile and desktop</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-purple-50 border-2 border-purple-200 rounded-2xl p-6">
+                <h2 class="text-xl font-bold text-purple-900 mb-4">🚀 Quick Actions</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <a href="/" class="bg-indigo-600 text-white py-3 px-4 rounded-xl font-bold text-center hover:bg-indigo-700 transition-all">
+                        Go to Portal
+                    </a>
+                    <button onclick="clearCache()" class="bg-purple-600 text-white py-3 px-4 rounded-xl font-bold hover:bg-purple-700 transition-all">
+                        Clear Cache
+                    </button>
+                </div>
+            </div>
+
+            <!-- Deployment Status -->
+            <div class="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-6">
+                <h2 class="text-xl font-bold text-yellow-900 mb-4">⚡ Deployment Status</h2>
+                <div id="deployment-status" class="space-y-2 text-sm">
+                    <p>🔄 Checking GitHub Actions...</p>
+                </div>
+                <a href="https://github.com/arsh077/legal-success-india-attandnce/actions" target="_blank" class="inline-block mt-3 text-blue-600 hover:underline text-sm font-bold">
+                    View GitHub Actions →
+                </a>
+            </div>
+
+            <!-- Browser Info -->
+            <div class="bg-gray-50 border-2 border-gray-200 rounded-2xl p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">🌐 Your Browser Info</h2>
+                <div id="browser-info" class="space-y-1 text-sm text-gray-700"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-8 text-center text-sm text-gray-500">
+            <p>If you don't see the notification bell, try:</p>
+            <p class="font-bold text-gray-700">Ctrl + Shift + Delete → Clear Cache → Ctrl + F5</p>
+        </div>
+    </div>
+
+    <script>
+        // Display browser info
+        const browserInfo = document.getElementById('browser-info');
+        browserInfo.innerHTML = `
+            <p><span class="font-bold">Browser:</span> ${navigator.userAgent}</p>
+            <p><span class="font-bold">Platform:</span> ${navigator.platform}</p>
+            <p><span class="font-bold">Language:</span> ${navigator.language}</p>
+            <p><span class="font-bold">Online:</span> ${navigator.onLine ? '✅ Yes' : '❌ No'}</p>
+            <p><span class="font-bold">Cookies:</span> ${navigator.cookieEnabled ? '✅ Enabled' : '❌ Disabled'}</p>
+            <p><span class="font-bold">Current Time:</span> ${new Date().toLocaleString('en-IN')}</p>
+        `;
+
+        // Check deployment status
+        const deploymentStatus = document.getElementById('deployment-status');
+        fetch('https://api.github.com/repos/arsh077/legal-success-india-attandnce/actions/runs?per_page=1')
+            .then(res => res.json())
+            .then(data => {
+                if (data.workflow_runs && data.workflow_runs.length > 0) {
+                    const run = data.workflow_runs[0];
+                    const status = run.status === 'completed' ? '✅ Completed' : '🔄 In Progress';
+                    const conclusion = run.conclusion === 'success' ? '✅ Success' : '❌ Failed';
+                    deploymentStatus.innerHTML = `
+                        <p><span class="font-bold">Status:</span> ${status}</p>
+                        <p><span class="font-bold">Result:</span> ${conclusion}</p>
+                        <p><span class="font-bold">Started:</span> ${new Date(run.created_at).toLocaleString('en-IN')}</p>
+                        <p><span class="font-bold">Updated:</span> ${new Date(run.updated_at).toLocaleString('en-IN')}</p>
+                    `;
+                } else {
+                    deploymentStatus.innerHTML = '<p>⚠️ No recent deployments found</p>';
+                }
+            })
+            .catch(err => {
+                deploymentStatus.innerHTML = '<p>⚠️ Could not fetch deployment status</p>';
+            });
+
+        // Clear cache function
+        function clearCache() {
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => caches.delete(name));
+                });
+            }
+            
+            alert('✅ Cache cleared! The page will reload now.');
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        }
+
+        // Auto-refresh every 30 seconds
+        setTimeout(() => {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Attendance</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .clock-time {
+            color: #16a34a;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        .toggle-wrapper {
+            margin: 40px 0;
+        }
+
+        .toggle-button {
+            width: 160px;
+            height: 80px;
+            background: #e5e7eb;
+            border-radius: 40px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .toggle-button::before {
+            content: '';
+            position: absolute;
+            width: 68px;
+            height: 68px;
+            background: white;
+            border-radius: 50%;
+            top: 6px;
+            left: 6px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .toggle-button.clocked-in {
+            background: #16a34a;
+        }
+
+        .toggle-button.clocked-in::before {
+            left: 86px;
+        }
+
+        .toggle-button:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+
+        .toggle-button:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .toggle-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .toggle-button.processing {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status-text {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 30px;
+            color: #16a34a;
+            transition: color 0.3s ease;
+        }
+
+        .info-text {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+
+        .icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🕐</div>
+        <h1>Quick Attendance</h1>
+        <div class="clock-time">You clocked in at <span id="timeDisplay">--:--</span></div>
+        
+        <div class="toggle-wrapper">
+            <button id="toggleButton" class="toggle-button clocked-out"></button>
+        </div>
+        
+        <div id="statusText" class="status-text">Currently Clocked Out</div>
+        <div class="info-text">Click the toggle to clock in/out.<br>Your attendance is being tracked.</div>
+    </div>
+
+    <script>
+        // ============================================
+        // ATTENDANCE TOGGLE - COMPLETE SOLUTION
+        // ============================================
+        class AttendanceToggle {
+            constructor(toggleButtonId) {
+                this.toggleButton = document.getElementById(toggleButtonId);
+                this.isProcessing = false;
+                this.lastClickTime = 0;
+                this.minClickDelay = 1000; // Minimum 1 second between clicks
+                this.currentStatus = 'out'; // 'in' or 'out'
+                this.init();
+            }
+
+            init() {
+                if (!this.toggleButton) {
+                    console.error('Toggle button not found!');
+                    return;
+                }
+
+                // Load saved status from localStorage
+                this.loadStatus();
+
+                // Add click event listener
+                this.toggleButton.addEventListener('click', (e) => this.handleClick(e));
+
+                // Prevent double-click
+                this.toggleButton.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+
+                // Update UI
+                this.updateUI();
+            }
+
+            handleClick(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                // Check if already processing
+                if (this.isProcessing) {
+                    console.log('Already processing, please wait...');
+                    this.showMessage('Please wait...', 'warning');
+                    return;
+                }
+
+                // Check minimum delay between clicks
+                const now = Date.now();
+                if (now - this.lastClickTime < this.minClickDelay) {
+                    console.log('Too fast! Please wait...');
+                    this.showMessage('Please wait a moment...', 'warning');
+                    return;
+                }
+
+                this.lastClickTime = now;
+                this.processToggle();
+            }
+
+            async processToggle() {
+                this.isProcessing = true;
+                this.toggleButton.disabled = true;
+                this.toggleButton.classList.add('processing');
+
+                try {
+                    // Show loading state
+                    this.showMessage('Processing...', 'info');
+
+                    // Simulate API call (replace with your actual API call)
+                    await this.clockInOut();
+
+                    // Toggle status
+                    this.currentStatus = this.currentStatus === 'out' ? 'in' : 'out';
+
+                    // Save status
+                    this.saveStatus();
+
+                    // Update UI
+                    this.updateUI();
+
+                    // Show success message
+                    const message = this.currentStatus === 'in' ? 'Clocked In Successfully! ✓' : 'Clocked Out Successfully! ✓';
+                    this.showMessage(message, 'success');
+
+                } catch (error) {
+                    console.error('Error toggling attendance:', error);
+                    this.showMessage('Error! Please try again.', 'error');
+                } finally {
+                    // Re-enable button after delay
+                    setTimeout(() => {
+                        this.isProcessing = false;
+                        this.toggleButton.disabled = false;
+                        this.toggleButton.classList.remove('processing');
+                    }, 1000);
+                }
+            }
+
+            async clockInOut() {
+                // Replace this with your actual API call
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        // Simulate API call
+                        const success = Math.random() > 0.1; // 90% success rate
+                        if (success) {
+                            resolve({
+                                status: 'success',
+                                time: new Date().toLocaleTimeString()
+                            });
+                        } else {
+                            reject(new Error('Network error'));
+                        }
+                    }, 500);
+                });
+            }
+
+            updateUI() {
+                const statusText = document.getElementById('statusText');
+                const timeDisplay = document.getElementById('timeDisplay');
+
+                if (this.currentStatus === 'in') {
+                    this.toggleButton.classList.add('clocked-in');
+                    this.toggleButton.classList.remove('clocked-out');
+                    if (statusText) statusText.textContent = 'Currently Clocked In';
+                    if (statusText) statusText.style.color = '#dc2626';
+                } else {
+                    this.toggleButton.classList.add('clocked-out');
+                    this.toggleButton.classList.remove('clocked-in');
+                    if (statusText) statusText.textContent = 'Currently Clocked Out';
+                    if (statusText) statusText.style.color = '#16a34a';
+                }
+
+                // Update time display
+                if (timeDisplay) {
+                    const now = new Date();
+                    timeDisplay.textContent = now.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            }
+
+            showMessage(message, type = 'info') {
+                let messageEl = document.getElementById('attendanceMessage');
+                if (!messageEl) {
+                    messageEl = document.createElement('div');
+                    messageEl.id = 'attendanceMessage';
+                    messageEl.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        padding: 15px 20px;
+                        border-radius: 8px;
+                        font-weight: 500;
+                        z-index: 9999;
+                        animation: slideIn 0.3s ease-out;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    `;
+                    document.body.appendChild(messageEl);
+                }
+
+                messageEl.textContent = message;
+                const colors = {
+                    success: { bg: '#dcfce7', text: '#15803d', border: '#16a34a' },
+                    error: { bg: '#fee2e2', text: '#991b1b', border: '#dc2626' },
+                    warning: { bg: '#fef3c7', text: '#92400e', border: '#f59e0b' },
+                    info: { bg: '#dbeafe', text: '#1e40af', border: '#3b82f6' }
+                };
+
+                const color = colors[type] || colors.info;
+                messageEl.style.backgroundColor = color.bg;
+                messageEl.style.color = color.text;
+                messageEl.style.border = `2px solid ${color.border}`;
+
+                setTimeout(() => {
+                    if (messageEl && messageEl.parentNode) {
+                        messageEl.style.animation = 'slideOut 0.3s ease-out';
+                        setTimeout(() => {
+                            if (messageEl && messageEl.parentNode) {
+                                messageEl.parentNode.removeChild(messageEl);
+                            }
+                        }, 300);
+                    }
+                }, 3000);
+            }
+
+            saveStatus() {
+                localStorage.setItem('attendanceStatus', this.currentStatus);
+                localStorage.setItem('lastToggleTime', this.lastClickTime.toString());
+            }
+
+            loadStatus() {
+                const savedStatus = localStorage.getItem('attendanceStatus');
+                if (savedStatus) {
+                    this.currentStatus = savedStatus;
+                }
+            }
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const attendance = new AttendanceToggle('toggleButton');
+            console.log('Attendance Toggle Initialized');
+        });
+    </script>
+</body>
+</html>

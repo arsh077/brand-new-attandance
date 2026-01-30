@@ -1,0 +1,21 @@
+{
+    "name": "Legal Success Attendance",
+    "short_name": "LSI Portal",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#4f46e5",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/assets/logo.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "/assets/logo.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ]
+}

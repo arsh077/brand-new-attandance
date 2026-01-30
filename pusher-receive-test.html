@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pusher Receive Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold mb-8">🔌 Pusher Receive Test (Read-Only)</h1>
+        
+        <div class="bg-gray-800 rounded-xl p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">Connection Status</h2>
+            <div id="status" class="text-xl font-mono"></div>
+        </div>
+
+        <div class="bg-yellow-800 rounded-xl p-6 mb-6">
+            <h2 class="text-xl font-bold mb-2">⚠️ Important Note</h2>
+            <p class="text-yellow-200">This test only RECEIVES events. It does not send them.</p>
+            <p class="text-yellow-200 mt-2">Open this page in TWO different browsers/devices to test.</p>
+        </div>
+
+        <div class="bg-gray-800 rounded-xl p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">Manual Event Trigger</h2>
+            <p class="text-gray-400 mb-4">Use Pusher Debug Console to send test events:</p>
+            <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
+                <li>Go to Pusher Dashboard → Debug Console</li>
+                <li>Channel: <code class="bg-gray-700 px-2 py-1 rounded">attendance-channel</code></li>
+                <li>Event: <code class="bg-gray-700 px-2 py-1 rounded">test-event</code></li>
+                <li>Data: <code class="bg-gray-700 px-2 py-1 rounded">{"message": "Hello"}</code></li>
+                <li>Click "Send Event"</li>
+            </ol>
+        </div>
+
+        <div class="bg-gray-800 rounded-xl p-6">
+            <h2 class="text-2xl font-bold mb-4">Event Log</h2>
+            <div id="log" class="font-mono text-sm space-y-2 max-h-96 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script>
+        const APP_KEY = '29d18e6ae1f9ed4b02ce';
+        const CLUSTER = 'ap2';
+        
+        let pusher, channel;
+        
+        try {
+            // Enable Pusher logging
+            Pusher.logToConsole = true;
+            
+            pusher = new Pusher(APP_KEY, {
+                cluster: CLUSTER,
+                forceTLS: true
+            });
+
+            log('✅ Pusher object created');
+            
+            // Connection state changes
+            pusher.connection.bind('state_change', function(states) {
+                log(`🔄 State: ${states.previous} → ${states.current}`);
+                updateStatus(states.current);
+            });
+
+            pusher.connection.bind('connecting', function() {
+                log('🔄 Connecting to Pusher...');
+            });
+
+            pusher.connection.bind('connected', function() {
+                log('✅ Connected to Pusher!');
+                log('✅ Socket ID: ' + pusher.connection.socket_id);
+                updateStatus('connected');
+            });
+
+            pusher.connection.bind('unavailable', function() {
+                log('❌ Connection unavailable');
+                updateStatus('unavailable');
+            });
+
+            pusher.connection.bind('failed', function() {
+                log('❌ Connection failed');
+                updateStatus('failed');
+            });
+
+            pusher.connection.bind('disconnected', function() {
+                log('⚠️ Disconnected');
+                updateStatus('disconnected');
+            });
+
+            pusher.connection.bind('error', function(err) {
+                log('❌ Connection error: ' + JSON.stringify(err));
+                updateStatus('error');
+            });
+
+            // Subscribe to channel
+            channel = pusher.subscribe('attendance-channel');
+            log('📡 Subscribing to attendance-channel...');
+            
+            channel.bind('pusher:subscription_succeeded', function() {
+                log('✅ Successfully subscribed to attendance-channel');
+            });
+
+            channel.bind('pusher:subscription_error', function(err) {
+                log('❌ Subscription error: ' + JSON.stringify(err));
+            });
+
+            // Listen for ALL events on this channel
+            channel.bind_global(function(event, data) {
+                log('📨 Received event: ' + event);
+                log('   Data: ' + JSON.stringify(data));
+            });
+
+            // Listen for specific events
+            channel.bind('test-event', function(data) {
+                log('🎉 TEST EVENT RECEIVED: ' + JSON.stringify(data));
+            });
+
+            channel.bind('client-clock-in', function(data) {
+                log('🟢 CLOCK IN: ' + JSON.stringify(data));
+            });
+
+            channel.bind('client-clock-out', function(data) {
+                log('🔴 CLOCK OUT: ' + JSON.stringify(data));
+            });
+
+        } catch (error) {
+            log('❌ Failed to initialize: ' + error.message);
+            updateStatus('failed');
+        }
+
+        function updateStatus(state) {
+            const statusEl = document.getElementById('status');
+            const statusMap = {
+                'initialized': '🔄 Initialized',
+                'connecting': '🔄 Connecting...',
+                'connected': '✅ Connected',
+                'unavailable': '❌ Unavailable',
+                'failed': '❌ Failed',
+                'disconnected': '⚠️ Disconnected',
+                'error': '❌ Error'
+            };
+            statusEl.textContent = statusMap[state] || state;
+            statusEl.className = state === 'connected' ? 'text-green-400 text-2xl' : 'text-red-400 text-2xl';
+        }
+
+        function log(message) {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString('en-IN');
+            const entry = document.createElement('div');
+            entry.className = 'p-2 bg-gray-700 rounded mb-2';
+            entry.innerHTML = `<span class="text-gray-400">[${time}]</span> ${message}`;
+            logEl.insertBefore(entry, logEl.firstChild);
+            
+            // Also log to console
+            console.log(`[${time}] ${message}`);
+        }
+
+        // Initial status
+        updateStatus('initialized');
+        log('🚀 Starting Pusher receive test...');
+        log('📋 App Key: ' + APP_KEY);
+        log('📋 Cluster: ' + CLUSTER);
+        log('📋 Channel: attendance-channel');
+    </script>
+</body>
+</html>

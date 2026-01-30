@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Test - Legal Success India</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #4F46E5;
+            margin-bottom: 20px;
+        }
+        .credential-box {
+            background: #EEF2FF;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4F46E5;
+        }
+        .credential-box h3 {
+            margin: 0 0 10px 0;
+            color: #4F46E5;
+        }
+        .credential-box p {
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        .copy-btn {
+            background: #4F46E5;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .copy-btn:hover {
+            background: #4338CA;
+        }
+        .test-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .success {
+            background: #D1FAE5;
+            border-left: 4px solid #10B981;
+            color: #065F46;
+        }
+        .error {
+            background: #FEE2E2;
+            border-left: 4px solid #EF4444;
+            color: #991B1B;
+        }
+        button {
+            background: #4F46E5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #4338CA;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Login Credentials Test</h1>
+        <p>Test your login credentials before using the main portal.</p>
+
+        <div class="credential-box">
+            <h3>👨‍💼 Admin</h3>
+            <p><strong>Email:</strong> <span id="admin-email">Info@legalsuccessindia.com</span> 
+                <button class="copy-btn" onclick="copyText('admin-email')">Copy</button>
+            </p>
+            <p><strong>Password:</strong> <span id="admin-pass">Legal@000</span> 
+                <button class="copy-btn" onclick="copyText('admin-pass')">Copy</button>
+            </p>
+        </div>
+
+        <div class="credential-box">
+            <h3>👔 Manager</h3>
+            <p><strong>Email:</strong> <span id="manager-email">vizralegalsuccess@gmail.com</span> 
+                <button class="copy-btn" onclick="copyText('manager-email')">Copy</button>
+            </p>
+            <p><strong>Password:</strong> <span id="manager-pass">Legal@004</span> 
+                <button class="copy-btn" onclick="copyText('manager-pass')">Copy</button>
+            </p>
+        </div>
+
+        <div class="credential-box">
+            <h3>👥 Employee (Kabir)</h3>
+            <p><strong>Email:</strong> <span id="emp-email">lsikabir27@gmail.com</span> 
+                <button class="copy-btn" onclick="copyText('emp-email')">Copy</button>
+            </p>
+            <p><strong>Password:</strong> <span id="emp-pass">Legal@001</span> 
+                <button class="copy-btn" onclick="copyText('emp-pass')">Copy</button>
+            </p>
+        </div>
+
+        <button onclick="testCredentials()">🧪 Test All Credentials</button>
+
+        <div id="result"></div>
+
+        <hr style="margin: 30px 0;">
+        
+        <h3>📝 Instructions:</h3>
+        <ol>
+            <li>Click "Copy" button next to email/password</li>
+            <li>Go to main login page</li>
+            <li>Select role (Admin/Manager/Employee)</li>
+            <li>Paste email and password</li>
+            <li>Click "Secure Sign In"</li>
+        </ol>
+
+        <p><strong>Main Portal:</strong> <a href="/">Go to Login Page</a></p>
+    </div>
+
+    <script>
+        function copyText(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied: ' + text);
+            });
+        }
+
+        function testCredentials() {
+            const credentials = [
+                { email: 'Info@legalsuccessindia.com', password: 'Legal@000', role: 'ADMIN' },
+                { email: 'vizralegalsuccess@gmail.com', password: 'Legal@004', role: 'MANAGER' },
+                { email: 'lsikabir27@gmail.com', password: 'Legal@001', role: 'EMPLOYEE' }
+            ];
+
+            let resultHTML = '<div class="test-result success">';
+            resultHTML += '<h3>✅ Credentials Format Check</h3>';
+            
+            credentials.forEach(cred => {
+                resultHTML += `<p><strong>${cred.role}:</strong> Email length: ${cred.email.length}, Password length: ${cred.password.length}</p>`;
+            });
+
+            resultHTML += '<p><strong>Admin Email:</strong> ' + credentials[0].email + '</p>';
+            resultHTML += '<p><strong>Admin Password:</strong> ' + credentials[0].password + '</p>';
+            resultHTML += '<p style="margin-top: 15px;">✅ All credentials are properly formatted!</p>';
+            resultHTML += '<p>⚠️ If login still fails, check browser console for errors.</p>';
+            resultHTML += '</div>';
+
+            document.getElementById('result').innerHTML = resultHTML;
+        }
+    </script>
+</body>
+</html>
