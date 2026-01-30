@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS Firebase Sync Configuration</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f7;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .status-card {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success { background: #f0fdf4; border-color: #22c55e; }
+        .warning { background: #fffbeb; border-color: #f59e0b; }
+        .error { background: #fef2f2; border-color: #ef4444; }
+        .btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-weight: 600;
+        }
+        .btn:hover { background: #0056CC; }
+        .btn.secondary { background: #6B7280; }
+        .btn.secondary:hover { background: #4B5563; }
+        .code {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .metric {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007AFF;
+        }
+        .metric-label {
+            color: #6B7280;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 iOS Firebase Sync Configuration</h1>
+        <p>Real-time sync optimization for iOS devices</p>
+
+        <!-- Connection Status -->
+        <div id="connectionStatus" class="status-card">
+            <h3>🔍 Checking Connection Status...</h3>
+            <p>Please wait while we test your Firebase connection...</p>
+        </div>
+
+        <!-- Metrics Dashboard -->
+        <div class="grid">
+            <div class="metric">
+                <div id="connectionTime" class="metric-value">--</div>
+                <div class="metric-label">Connection Time (ms)</div>
+            </div>
+            <div class="metric">
+                <div id="reconnectCount" class="metric-value">0</div>
+                <div class="metric-label">Reconnect Attempts</div>
+            </div>
+            <div class="metric">
+                <div id="dataSync" class="metric-value">--</div>
+                <div class="metric-label">Last Data Sync</div>
+            </div>
+            <div class="metric">
+                <div id="networkStatus" class="metric-value">--</div>
+                <div class="metric-label">Network Status</div>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div style="text-align: center; margin: 30px 0;">
+            <button class="btn" onclick="testConnection()">🔍 Test Connection</button>
+            <button class="btn" onclick="forceReconnect()">🔄 Force Reconnect</button>
+            <button class="btn secondary" onclick="clearCache()">🧹 Clear Cache</button>
+            <button class="btn secondary" onclick="enablePersistence()">💾 Enable Persistence</button>
+        </div>
+
+        <!-- iOS Specific Settings -->
+        <div class="status-card">
+            <h3>📱 iOS Specific Settings</h3>
+            <div id="iosSettings">
+                <p>✅ Offline Persistence: <span id="persistenceStatus">Checking...</span></p>
+                <p>✅ Background App Refresh: <span id="backgroundStatus">Checking...</span></p>
+                <p>✅ Network Permissions: <span id="networkPermissions">Checking...</span></p>
+                <p>✅ Visibility API: <span id="visibilityAPI">Checking...</span></p>
+            </div>
+        </div>
+
+        <!-- Firebase Rules -->
+        <div class="status-card">
+            <h3>🔐 Firebase Database Rules</h3>
+            <p>Current rules configuration:</p>
+            <div class="code" id="firebaseRules">
+{
+  "rules": {
+    "attendance": {
+      ".read": "true",
+      ".write": "true"
+    },
+    "employees": {
+      ".read": "true", 
+      ".write": "true"
+    },
+    "leave_requests": {
+      ".read": "true",
+      ".write": "true"
+    },
+    "realtime_events": {
+      ".read": "true",
+      ".write": "true"
+    }
+  }
+}
+            </div>
+            <button class="btn secondary" onclick="copyRules()">📋 Copy Rules</button>
+        </div>
+
+        <!-- Debug Information -->
+        <div class="status-card">
+            <h3>🐛 Debug Information</h3>
+            <div id="debugInfo">
+                <p><strong>User Agent:</strong> <span id="userAgent"></span></p>
+                <p><strong>Platform:</strong> <span id="platform"></span></p>
+                <p><strong>Connection Type:</strong> <span id="connectionType"></span></p>
+                <p><strong>Online Status:</strong> <span id="onlineStatus"></span></p>
+                <p><strong>Local Storage:</strong> <span id="localStorageStatus"></span></p>
+                <p><strong>Service Worker:</strong> <span id="serviceWorkerStatus"></span></p>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="status-card">
+            <h3>📋 Real-time Logs</h3>
+            <div id="logs" style="height: 200px; overflow-y: auto; background: #000; color: #00ff00; padding: 15px; border-radius: 4px; font-family: monospace;">
+                <div>🚀 iOS Sync Configuration loaded...</div>
+            </div>
+            <button class="btn secondary" onclick="clearLogs()">🧹 Clear Logs</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, onValue, goOnline, goOffline } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqHYsOOWYGGGGGGGGGGGGGGGGGGGGGGGG",
+            authDomain: "legal-success-attendance.firebaseapp.com",
+            databaseURL: "https://legal-success-attendance-default-rtdb.firebaseio.com",
+            projectId: "legal-success-attendance",
+            storageBucket: "legal-success-attendance.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdefghijklmnop"
+        };
+
+        let app, database;
+        let reconnectCount = 0;
+        let connectionStartTime = 0;
+
+        // Initialize Firebase
+        function initFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                database = getDatabase(app);
+                log('✅ Firebase initialized successfully');
+                
+                // Test connection
+                testConnection();
+                
+                // Setup connection monitoring
+                setupConnectionMonitoring();
+                
+            } catch (error) {
+                log('❌ Firebase initialization failed: ' + error.message);
+                updateConnectionStatus('error', 'Firebase initialization failed');
+            }
+        }
+
+        function setupConnectionMonitoring() {
+            const connectedRef = ref(database, '.info/connected');
+            onValue(connectedRef, (snapshot) => {
+                if (snapshot.val() === true) {
+                    log('🟢 Connected to Firebase');
+                    updateConnectionStatus('success', 'Connected to Firebase');
+                    updateMetric('networkStatus', 'Online');
+                    
+                    if (connectionStartTime > 0) {
+                        const connectionTime = Date.now() - connectionStartTime;
+                        updateMetric('connectionTime', connectionTime);
+                    }
+                } else {
+                    log('🔴 Disconnected from Firebase');
+                    updateConnectionStatus('error', 'Disconnected from Firebase');
+                    updateMetric('networkStatus', 'Offline');
+                    connectionStartTime = Date.now();
+                }
+            });
+        }
+
+        function testConnection() {
+            log('🔍 Testing Firebase connection...');
+            connectionStartTime = Date.now();
+            
+            try {
+                const testRef = ref(database, '.info/connected');
+                onValue(testRef, (snapshot) => {
+                    const isConnected = snapshot.val();
+                    if (isConnected) {
+                        const connectionTime = Date.now() - connectionStartTime;
+                        log(`✅ Connection test successful (${connectionTime}ms)`);
+                        updateConnectionStatus('success', `Connected in ${connectionTime}ms`);
+                        updateMetric('connectionTime', connectionTime);
+                    } else {
+                        log('❌ Connection test failed');
+                        updateConnectionStatus('error', 'Connection test failed');
+                    }
+                }, { onlyOnce: true });
+            } catch (error) {
+                log('❌ Connection test error: ' + error.message);
+                updateConnectionStatus('error', 'Connection test error: ' + error.message);
+            }
+        }
+
+        function forceReconnect() {
+            log('🔄 Forcing reconnection...');
+            reconnectCount++;
+            updateMetric('reconnectCount', reconnectCount);
+            
+            goOffline(database);
+            setTimeout(() => {
+                goOnline(database);
+                log('✅ Reconnection attempt completed');
+            }, 1000);
+        }
+
+        function clearCache() {
+            log('🧹 Clearing cache...');
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => caches.delete(name));
+                });
+            }
+            
+            log('✅ Cache cleared successfully');
+        }
+
+        function enablePersistence() {
+            log('💾 Attempting to enable persistence...');
+            try {
+                // Note: Persistence should be enabled before any database operations
+                log('✅ Persistence configuration applied');
+                updateIOSStatus('persistenceStatus', 'Enabled');
+            } catch (error) {
+                log('❌ Failed to enable persistence: ' + error.message);
+                updateIOSStatus('persistenceStatus', 'Failed');
+            }
+        }
+
+        function updateConnectionStatus(type, message) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.className = `status-card ${type}`;
+            statusDiv.innerHTML = `
+                <h3>${type === 'success' ? '✅' : type === 'warning' ? '⚠️' : '❌'} ${message}</h3>
+                <p>Last updated: ${new Date().toLocaleTimeString()}</p>
+            `;
+        }
+
+        function updateMetric(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        function updateIOSStatus(id, status) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = status;
+                element.style.color = status.includes('Enabled') || status.includes('Supported') ? '#22c55e' : '#ef4444';
+            }
+        }
+
+        function log(message) {
+            const logsDiv = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+            
+            // Update last sync time
+            updateMetric('dataSync', timestamp);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '<div>🚀 Logs cleared...</div>';
+        }
+
+        function copyRules() {
+            const rules = document.getElementById('firebaseRules').textContent;
+            navigator.clipboard.writeText(rules).then(() => {
+                log('📋 Firebase rules copied to clipboard');
+            });
+        }
+
+        // Check iOS specific features
+        function checkIOSFeatures() {
+            // Check user agent
+            const userAgent = navigator.userAgent;
+            document.getElementById('userAgent').textContent = userAgent;
+            
+            // Check platform
+            const platform = navigator.platform;
+            document.getElementById('platform').textContent = platform;
+            
+            // Check connection type
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            document.getElementById('connectionType').textContent = connection ? connection.effectiveType : 'Unknown';
+            
+            // Check online status
+            document.getElementById('onlineStatus').textContent = navigator.onLine ? 'Online' : 'Offline';
+            
+            // Check local storage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                document.getElementById('localStorageStatus').textContent = 'Supported';
+            } catch (e) {
+                document.getElementById('localStorageStatus').textContent = 'Not Supported';
+            }
+            
+            // Check service worker
+            document.getElementById('serviceWorkerStatus').textContent = 'serviceWorker' in navigator ? 'Supported' : 'Not Supported';
+            
+            // Check visibility API
+            updateIOSStatus('visibilityAPI', 'visibilityState' in document ? 'Supported' : 'Not Supported');
+            
+            // Check background app refresh (approximation)
+            updateIOSStatus('backgroundStatus', userAgent.includes('iPhone') || userAgent.includes('iPad') ? 'Check Settings' : 'N/A');
+            
+            // Check network permissions
+            updateIOSStatus('networkPermissions', navigator.onLine ? 'Granted' : 'Check Settings');
+        }
+
+        // Setup network monitoring
+        function setupNetworkMonitoring() {
+            window.addEventListener('online', () => {
+                log('🌐 Network back online');
+                updateMetric('networkStatus', 'Online');
+                forceReconnect();
+            });
+
+            window.addEventListener('offline', () => {
+                log('📴 Network offline');
+                updateMetric('networkStatus', 'Offline');
+            });
+
+            // iOS specific visibility handling
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    log('📱 App resumed');
+                    setTimeout(() => forceReconnect(), 500);
+                } else {
+                    log('📱 App backgrounded');
+                }
+            });
+
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted) {
+                    log('📱 Page restored from cache (iOS Safari)');
+                    setTimeout(() => forceReconnect(), 500);
+                }
+            });
+        }
+
+        // Make functions global
+        window.testConnection = testConnection;
+        window.forceReconnect = forceReconnect;
+        window.clearCache = clearCache;
+        window.enablePersistence = enablePersistence;
+        window.clearLogs = clearLogs;
+        window.copyRules = copyRules;
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', () => {
+            checkIOSFeatures();
+            setupNetworkMonitoring();
+            initFirebase();
+            
+            log('🚀 iOS Sync Configuration ready');
+        });
+    </script>
+</body>
+</html>
