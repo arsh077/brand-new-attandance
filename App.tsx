@@ -188,6 +188,10 @@ const App: React.FC = () => {
     // Set user in localStorage for persistence
     localStorage.setItem('user', JSON.stringify(user));
 
+    // Initialize notification service for this user
+    notificationService.initialize(user.id, user.role);
+    console.log('🔔 Notification service initialized for:', user.name);
+
     // Force update state
     setCurrentUser(user);
     setActiveTab('dashboard');

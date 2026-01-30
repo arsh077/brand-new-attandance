@@ -5,7 +5,7 @@ import { UserRole, Employee, LeaveType } from './types';
 // Secure user credentials - Only these emails can login with correct passwords
 export const AUTHORIZED_USERS = [
   { email: 'Info@legalsuccessindia.com', password: 'Legal@000', role: UserRole.ADMIN, name: 'Admin - Info' },
-  { email: 'vizralegalsuccess@gmail.com', password: 'Legal@004', role: UserRole.MANAGER, name: 'VIZRA AHSAN' },
+  { email: 'vizralegalsuccess@gmail.com', password: 'Ahsan@011', role: UserRole.MANAGER, name: 'VIZRA AHSAN' },
   { email: 'lsikabir27@gmail.com', password: 'Legal@001', role: UserRole.EMPLOYEE, name: 'Kabir' },
   { email: 'legalsuccessindia94@gmail.com', password: 'Legal@002', role: UserRole.EMPLOYEE, name: 'Sharfaraz' },
   { email: 'sahinlegalsuccess@gmail.com', password: 'Legal@003', role: UserRole.EMPLOYEE, name: 'Sahin' },
@@ -24,7 +24,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: UserRole.ADMIN,
     status: 'ACTIVE',
     dateJoined: '2022-01-01',
-    leaveBalance: { [LeaveType.CASUAL]: 10, [LeaveType.SICK]: 12, [LeaveType.EARNED]: 15, [LeaveType.LOP]: 0 }
+    leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
   },
   {
     id: 'EMP002',
@@ -37,7 +37,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: UserRole.MANAGER,
     status: 'ACTIVE',
     dateJoined: '2023-05-10',
-    leaveBalance: { [LeaveType.CASUAL]: 8, [LeaveType.SICK]: 10, [LeaveType.EARNED]: 15, [LeaveType.LOP]: 0 }
+    leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
   },
   {
     id: 'EMP003',
@@ -50,7 +50,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: UserRole.EMPLOYEE,
     status: 'ACTIVE',
     dateJoined: '2024-01-10',
-    leaveBalance: { [LeaveType.CASUAL]: 5, [LeaveType.SICK]: 8, [LeaveType.EARNED]: 10, [LeaveType.LOP]: 0 }
+    leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
   },
   {
     id: 'EMP004',
@@ -63,7 +63,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: UserRole.EMPLOYEE,
     status: 'ACTIVE',
     dateJoined: '2024-02-15',
-    leaveBalance: { [LeaveType.CASUAL]: 5, [LeaveType.SICK]: 8, [LeaveType.EARNED]: 10, [LeaveType.LOP]: 0 }
+    leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
   },
   {
     id: 'EMP005',
@@ -76,7 +76,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: UserRole.EMPLOYEE,
     status: 'ACTIVE',
     dateJoined: '2024-03-20',
-    leaveBalance: { [LeaveType.CASUAL]: 5, [LeaveType.SICK]: 8, [LeaveType.EARNED]: 10, [LeaveType.LOP]: 0 }
+    leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
   },
   {
     id: 'EMP006',
@@ -89,7 +89,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: UserRole.EMPLOYEE,
     status: 'ACTIVE',
     dateJoined: '2024-06-15',
-    leaveBalance: { [LeaveType.CASUAL]: 5, [LeaveType.SICK]: 8, [LeaveType.EARNED]: 10, [LeaveType.LOP]: 0 }
+    leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
   }
 ];
 
