@@ -329,6 +329,14 @@ const App: React.FC = () => {
     return () => notificationService.cleanup();
   }, [currentUser]);
 
+  // Initialize Advanced Notification Listeners
+  useEffect(() => {
+    if (currentUser) {
+      notificationService.initialize(currentUser.id, currentUser.role);
+    }
+    return () => notificationService.cleanup();
+  }, [currentUser]);
+
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
       <Sidebar role={currentUser.role} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
