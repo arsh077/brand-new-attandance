@@ -67,6 +67,32 @@ const App: React.FC = () => {
       localStorage.setItem('debug_cache_cleared_v4', 'true');
       console.log('✅ Debug cache cleared!');
     }
+    
+    // Sync employee data with authorized users - Version 5.0
+    const dataSyncDone = localStorage.getItem('data_sync_v5');
+    if (!dataSyncDone) {
+      console.log('🔄 Syncing employee data with authorized users...');
+      // Reset employees to match only authorized users
+      setEmployees(INITIAL_EMPLOYEES);
+      localStorage.setItem('ls_employees', JSON.stringify(INITIAL_EMPLOYEES));
+      
+      // Clear any fake attendance data
+      const realAttendance = attendance.filter(a => 
+        INITIAL_EMPLOYEES.some(emp => emp.id === a.employeeId)
+      );
+      setAttendance(realAttendance);
+      localStorage.setItem('ls_attendance', JSON.stringify(realAttendance));
+      
+      // Clear any fake leave requests
+      const realLeaves = leaveRequests.filter(l => 
+        INITIAL_EMPLOYEES.some(emp => emp.id === l.employeeId)
+      );
+      setLeaveRequests(realLeaves);
+      localStorage.setItem('ls_leave_requests', JSON.stringify(realLeaves));
+      
+      localStorage.setItem('data_sync_v5', 'true');
+      console.log('✅ Data sync complete! Only real users data retained.');
+    }
   }, []);
 
   useEffect(() => {

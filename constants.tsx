@@ -5,7 +5,7 @@ import { UserRole, Employee, LeaveType } from './types';
 // Secure user credentials - Only these emails can login with correct passwords
 export const AUTHORIZED_USERS = [
   { email: 'Info@legalsuccessindia.com', password: 'Legal@000', role: UserRole.ADMIN, name: 'Admin - Info' },
-  { email: 'vizralegalsuccess@gmail.com', password: 'Ahsan@011', role: UserRole.MANAGER, name: 'VIZRA AHSAN' },
+  { email: 'vizralegalsuccess@gmail.com', password: 'Ahsan@110', role: UserRole.MANAGER, name: 'VIZRA AHSAN' },
   { email: 'lsikabir27@gmail.com', password: 'Legal@001', role: UserRole.EMPLOYEE, name: 'Kabir' },
   { email: 'legalsuccessindia94@gmail.com', password: 'Legal@002', role: UserRole.EMPLOYEE, name: 'Sharfaraz' },
   { email: 'sahinlegalsuccess@gmail.com', password: 'Legal@003', role: UserRole.EMPLOYEE, name: 'Sahin' },
