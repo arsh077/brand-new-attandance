@@ -3,6 +3,7 @@ import { db } from './firebaseConfig';
 import {
     collection,
     addDoc,
+    setDoc,
     updateDoc,
     doc,
     onSnapshot,
@@ -23,21 +24,26 @@ class FirebaseAttendanceService {
             const now = new Date();
             const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+            // Use composite key: employeeId-date to prevent duplicates
+            const docId = `${employeeId}-${today}`;
+
             const attendanceData = {
                 employeeId,
                 employeeName,
                 date: today,
                 clockIn: clockInTime,
+                clockOut: '',
                 isLate,
                 status: isLate ? 'LATE' : 'PRESENT',
                 timestamp: Timestamp.now(),
                 createdAt: new Date().toISOString()
             };
 
-            const docRef = await addDoc(this.attendanceCollection, attendanceData);
-            console.log('🔥 Firebase: Clock in saved with ID:', docRef.id);
+            // Use setDoc to update if exists, create if doesn't
+            await setDoc(doc(db, 'attendance', docId), attendanceData, { merge: true });
+            console.log('🔥 Firebase: Clock in saved with ID:', docId);
 
-            return { success: true, id: docRef.id };
+            return { success: true, id: docId };
         } catch (error) {
             console.error('❌ Firebase clockIn error:', error);
             return { success: false, error };
