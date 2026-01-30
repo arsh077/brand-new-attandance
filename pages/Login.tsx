@@ -33,6 +33,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           throw new Error(`Your account is registered as ${localUser.role}, not ${selectedRole}.`);
         }
 
+        // IMPORTANT: Try to sign into Firebase in the background so listeners work
+        // but don't wait for it to block the local login success.
+        firebaseAuthService.login(email.trim(), password.trim());
+
         // Success! Proceed
         onLogin(localUser.role, localUser.email);
         return;
