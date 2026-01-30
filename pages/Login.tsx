@@ -33,9 +33,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           throw new Error(`Your account is registered as ${localUser.role}, not ${selectedRole}.`);
         }
 
-        // IMPORTANT: Try to sign into Firebase in the background so listeners work
-        // but don't wait for it to block the local login success.
-        firebaseAuthService.login(email.trim(), password.trim());
+        // AUTO-REGISTRATION: Try to login to Firebase, if fails (user not found), then Register
+        console.log('🔥 Syncing Firebase Auth...');
+        const authResult = await firebaseAuthService.login(email.trim(), password.trim());
+
+        if (!authResult.success && authResult.error?.includes('auth/user-not-found')) {
+          console.log('🔥 Firebase: User not found, performing auto-registration...');
+          await firebaseAuthService.register(email.trim(), password.trim());
+        }
 
         // Success! Proceed
         onLogin(localUser.role, localUser.email);

@@ -2,12 +2,27 @@
 import { auth } from './firebaseConfig';
 import {
     signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
     signOut,
     onAuthStateChanged,
     User
 } from 'firebase/auth';
 
 class FirebaseAuthService {
+    /**
+     * Register a new user
+     */
+    async register(email: string, password: string) {
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            console.log('🔥 Firebase: User registered:', userCredential.user.email);
+            return { success: true, user: userCredential.user };
+        } catch (error: any) {
+            console.error('❌ Firebase registration error:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
+
     /**
      * Login with email and password
      */
