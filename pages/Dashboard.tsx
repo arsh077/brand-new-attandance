@@ -22,9 +22,21 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
   const minClickDelay = 1000; // Minimum 1 second between clicks
 
   // Real-time attendance calculation (updates automatically from Firebase!)
-  const todayAttendance = attendance.filter(a => a.date === today);
-  const presentToday = todayAttendance.filter(a => a.clockIn).length;
+  // CRITICAL: Only count TODAY's attendance, filter by exact date match
+  const todayAttendance = attendance.filter(a => {
+    const isTodayRecord = a.date === today;
+    if (isTodayRecord) {
+      console.log('📊 Today attendance record:', a.employeeName, a.date, a.clockIn, a.status);
+    }
+    return isTodayRecord;
+  });
+
+  // Count only unique employees who clocked in TODAY
+  const presentToday = todayAttendance.filter(a => a.clockIn && a.clockIn.trim() !== '').length;
   const lateArrivals = todayAttendance.filter(a => a.status === AttendanceStatus.LATE).length;
+
+  console.log(`📊 STATS - Date: ${today}, Total Records: ${attendance.length}, Today's Records: ${todayAttendance.length}, Present: ${presentToday}, Late: ${lateArrivals}`);
+
   const onLeaveToday = leaves.filter(l =>
     l.status === 'APPROVED' &&
     new Date(l.startDate) <= new Date(today) &&
