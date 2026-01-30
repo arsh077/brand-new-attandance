@@ -122,18 +122,21 @@ const App: React.FC = () => {
       // AUTO-INITIALIZE: If database is empty, populate it
       if (employeesData.length === 0 && !localStorage.getItem('firebase_initialized')) {
         console.log('⚠️ Firebase database is empty! Initializing with default employees...');
+        if (!isMounted) return; // Check again before async operation
         await firebaseEmployeeService.initializeEmployees(INITIAL_EMPLOYEES);
+        if (!isMounted) return; // Check again after async operation
         localStorage.setItem('firebase_initialized', 'true');
         return; // The listener will fire again after initialization
       }
 
+      if (!isMounted) return; // Final check before state updates
       setEmployees(employeesData);
       localStorage.setItem('ls_employees', JSON.stringify(employeesData));
 
       // Update current user if data changed
       if (currentUser) {
         const updatedUser = employeesData.find(e => e.id === currentUser.id);
-        if (updatedUser) {
+        if (updatedUser && isMounted) {
           setCurrentUser(updatedUser);
           localStorage.setItem('user', JSON.stringify(updatedUser));
         }
