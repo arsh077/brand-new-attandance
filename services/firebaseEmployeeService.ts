@@ -48,6 +48,24 @@ class FirebaseEmployeeService {
             return null;
         }
     }
+
+    /**
+     * Initialize employees from array (for first-time setup)
+     */
+    async initializeEmployees(employees: Employee[]) {
+        try {
+            console.log('🚀 Initializing Firebase with', employees.length, 'employees...');
+            const promises = employees.map(emp =>
+                setDoc(doc(db, 'employees', emp.id), emp)
+            );
+            await Promise.all(promises);
+            console.log('✅ Firebase: All employees initialized successfully!');
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Firebase initializeEmployees error:', error);
+            return { success: false, error };
+        }
+    }
 }
 
 export const firebaseEmployeeService = new FirebaseEmployeeService();
