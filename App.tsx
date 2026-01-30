@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserRole, Employee, AttendanceRecord, LeaveRequest, LeaveStatus, AttendanceStatus } from './types';
-import { authService } from './services/authService';
+import { firebaseAuthService } from './services/firebaseAuthService';
 import { firebaseAttendanceService } from './services/firebaseAttendanceService';
 import { firebaseLeaveService } from './services/firebaseLeaveService';
 import { firebaseEmployeeService } from './services/firebaseEmployeeService';
@@ -35,13 +35,8 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
   const [currentUser, setCurrentUser] = useState<Employee | null>(() => {
-    const user = authService.getCurrentUser();
-    // Verify session is valid
-    if (user && !authService.verifySession()) {
-      authService.logout();
-      return null;
-    }
-    return user;
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
   });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [notifications, setNotifications] = useState<Notification[]>(() => {
@@ -172,8 +167,7 @@ const App: React.FC = () => {
       localStorage.setItem('auth_token', token);
     }
 
-    // Set user in auth service
-    authService.login(role);
+    // Set user in localStorage for persistence
     localStorage.setItem('user', JSON.stringify(user));
 
     // Force update state
@@ -182,8 +176,10 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    authService.logout();
+    firebaseAuthService.logout();
     setCurrentUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth_token');
   };
 
   // Notification handlers
