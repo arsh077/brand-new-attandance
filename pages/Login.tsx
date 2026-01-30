@@ -21,42 +21,40 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      // 1. Firebase Authentication
+      // 1. Local Validation (Check against constants.tsx)
+      const localUser = AUTHORIZED_USERS.find(u =>
+        u.email.toLowerCase() === email.trim().toLowerCase() &&
+        u.password === password.trim()
+      );
+
+      if (localUser) {
+        // If local match found, verify if role matches selection
+        if (selectedRole && localUser.role !== selectedRole) {
+          throw new Error(`Your account is registered as ${localUser.role}, not ${selectedRole}.`);
+        }
+
+        // Success! Proceed
+        onLogin(localUser.role, localUser.email);
+        return;
+      }
+
+      // 2. Firebase Authentication (If local fails or for real database login)
       const authResult = await firebaseAuthService.login(email.trim(), password.trim());
 
       if (!authResult.success || !authResult.user) {
         throw new Error(authResult.error || 'Invalid credentials');
       }
 
-      // 2. Verify Employee Role from Firestore
+      // 3. Final Fetch from DB to ensure role sync
       const employee = await firebaseEmployeeService.getEmployeeByEmail(email.trim());
-
       if (!employee) {
-        // Fallback checks or error if employee not in DB
-        // If validating purely against DB, we should error here.
-        // For migration safety, if not in DB but authenticated, maybe we should check if they were in the old system?
-        // But let's assume successful migration and strictly check DB.
-
-        // Check if it matches hardcoded authorized users (Backup)
-        const localUser = AUTHORIZED_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
-        if (localUser && localUser.role === selectedRole) {
-          onLogin(localUser.role, localUser.email);
-          return;
-        }
-
         throw new Error('Employee record not found in system.');
       }
 
-      // 3. Role Validation
-      if (selectedRole && employee.role && employee.role !== selectedRole) {
-        // Allow Admin to login as any role? Maybe not.
-        // Strict check
-        if (employee.id !== 'admin' && employee.role !== selectedRole) { // Admin exception if needed
-          throw new Error(`Your account is registered as ${employee.role}, not ${selectedRole}.`);
-        }
+      if (selectedRole && employee.role !== selectedRole) {
+        throw new Error(`Your account is registered as ${employee.role}, not ${selectedRole}.`);
       }
 
-      // Login Successful
       onLogin(employee.role, employee.email);
 
     } catch (err: any) {
