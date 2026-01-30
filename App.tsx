@@ -81,18 +81,24 @@ const App: React.FC = () => {
     // No need to manually broadcast - Firebase Firestore does this automatically!
   }, [employees, attendance, leaveRequests, notifications]);
 
-  // Setup real-time listeners - FIREBASE ONLY (Replaces Supabase + Pusher + BroadcastChannel + Polling)
+  // Firebase Real-time Listeners
   useEffect(() => {
+    if (!currentUser) return;
+
+    let isMounted = true; // Guard against state updates after unmount
     console.log('🔥 Setting up Firebase real-time listeners...');
 
-    // Subscribe to notification service
+    // Listen to realtime service notifications
     const unsubNotifications = notificationService.subscribe((notification) => {
+      if (!isMounted) return;
+      console.log('🔔 New notification:', notification);
       setNotifications(prev => [notification, ...prev]);
     });
 
     // FIREBASE REAL-TIME LISTENERS (Automatic cross-device sync!)
     console.log('🔥 Subscribing to Firebase attendance updates...');
     const unsubFirebaseAttendance = firebaseAttendanceService.subscribeToAttendance((attendanceData) => {
+      if (!isMounted) return;
       console.log('🔥 Firebase real-time: Attendance updated!', attendanceData.length, 'records');
       // Firebase automatically syncs across ALL devices in real-time!
       // No need for Supabase/Pusher/Broadcasting - Firebase handles everything!
@@ -102,6 +108,7 @@ const App: React.FC = () => {
 
     console.log('🔥 Subscribing to Firebase leave requests...');
     const unsubFirebaseLeaves = firebaseLeaveService.subscribeToAllLeaves((leavesData) => {
+      if (!isMounted) return;
       console.log('🔥 Firebase real-time: Leave requests updated!', leavesData.length, 'requests');
       setLeaveRequests(leavesData);
       localStorage.setItem('ls_leave_requests', JSON.stringify(leavesData)); // Backup to localStorage
@@ -109,6 +116,7 @@ const App: React.FC = () => {
 
     console.log('🔥 Subscribing to Firebase employee updates...');
     const unsubFirebaseEmployees = firebaseEmployeeService.subscribeToEmployees(async (employeesData) => {
+      if (!isMounted) return;
       console.log('🔥 Firebase real-time: Employees updated!', employeesData.length);
 
       // AUTO-INITIALIZE: If database is empty, populate it
@@ -134,6 +142,7 @@ const App: React.FC = () => {
 
     // Cleanup
     return () => {
+      isMounted = false; // Prevent any pending async operations from updating state
       console.log('🧹 Cleaning up Firebase listeners...');
       unsubNotifications();
       unsubFirebaseAttendance();
@@ -184,11 +193,36 @@ const App: React.FC = () => {
     setActiveTab('dashboard');
   };
 
-  const handleLogout = () => {
-    firebaseAuthService.logout();
-    setCurrentUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth_token');
+  const handleLogout = async () => {
+    try {
+      // First logout from Firebase (this will trigger cleanup in useEffect)
+      await firebaseAuthService.logout();
+
+      // Small delay to let listeners cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Then clear state and localStorage
+      setCurrentUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('ls_employees');
+      localStorage.removeItem('ls_attendance');
+      localStorage.removeItem('ls_leave_requests');
+      localStorage.removeItem('ls_notifications');
+      localStorage.removeItem('firebase_initialized'); // Clear this flag too
+      localStorage.removeItem('data_reset_feb_2026'); // Clear this flag too
+      localStorage.removeItem('debug_cache_cleared_v4'); // Clear this flag too
+
+      // Reset local state to initial values
+      setEmployees(INITIAL_EMPLOYEES);
+      setAttendance([]);
+      setLeaveRequests([]);
+      setNotifications([]);
+      setActiveTab('dashboard'); // Reset active tab
+    } catch (error) {
+      console.error('Error during logout:', error);
+      alert('Logout failed. Please try again.');
+    }
   };
 
   // Notification handlers
