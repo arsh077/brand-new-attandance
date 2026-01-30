@@ -3,6 +3,7 @@ import { db } from './firebaseConfig';
 import {
     collection,
     addDoc,
+    setDoc,
     updateDoc,
     doc,
     onSnapshot,
@@ -20,17 +21,22 @@ class FirebaseLeaveService {
      */
     async submitLeave(leaveData: any) {
         try {
+            // Use the provided ID or generate a new one
+            const leaveId = leaveData.id || `LR${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+
             const leaveRequest = {
                 ...leaveData,
+                id: leaveId, // Store the ID in the document itself
                 status: 'PENDING',
                 timestamp: Timestamp.now(),
                 createdAt: new Date().toISOString()
             };
 
-            const docRef = await addDoc(this.leaveCollection, leaveRequest);
-            console.log('🔥 Firebase: Leave request submitted with ID:', docRef.id);
+            // Use setDoc with the custom ID instead of addDoc
+            await setDoc(doc(db, 'leaveRequests', leaveId), leaveRequest);
+            console.log('🔥 Firebase: Leave request submitted with ID:', leaveId);
 
-            return { success: true, id: docRef.id };
+            return { success: true, id: leaveId };
         } catch (error) {
             console.error('❌ Firebase submitLeave error:', error);
             return { success: false, error };
