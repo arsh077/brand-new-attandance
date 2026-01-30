@@ -69,10 +69,10 @@ class FirebaseLeaveService {
      * Real-time updates when new leave requests are submitted
      */
     subscribeToPendingLeaves(callback: (leaves: any[]) => void) {
+        // Removed orderBy to avoid Firebase index requirement
         const q = query(
             this.leaveCollection,
-            where('status', '==', 'PENDING'),
-            orderBy('timestamp', 'desc')
+            where('status', '==', 'PENDING')
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -94,43 +94,44 @@ class FirebaseLeaveService {
      * Subscribe to all leave requests (real-time)
      */
     subscribeToAllLeaves(callback: (leaves: any[]) => void) {
-        const q = query(this.leaveCollection, orderBy('timestamp', 'desc'));
+        // Removed orderBy to avoid Firebase index requirement
+        const unsubscribe = onSnapshot(this.leaveCollection, (snapshot) => {
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const leaves = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                const leaves = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
 
-            console.log('🔥 Firebase: All leave requests:', leaves.length);
-            callback(leaves);
-        });
+                console.log('🔥 Firebase: All leave requests:', leaves.length);
+                callback(leaves);
+            });
 
-        return unsubscribe;
-    }
+            return unsubscribe;
+        }
 
     /**
      * Subscribe to user's own leave requests
      */
     subscribeToUserLeaves(employeeId: string, callback: (leaves: any[]) => void) {
-        const q = query(
-            this.leaveCollection,
-            where('employeeId', '==', employeeId),
-            orderBy('timestamp', 'desc')
-        );
+            const q = query(
+                this.leaveCollection,
+                where('employeeId', '==', employeeId),
+                orderBy('timestamp', 'desc')
+            );
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const leaves = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                const leaves = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
 
-            console.log('🔥 Firebase: User leave requests:', leaves.length);
-            callback(leaves);
-        });
+                console.log('🔥 Firebase: User leave requests:', leaves.length);
+                callback(leaves);
+            });
 
-        return unsubscribe;
-    }
+            return unsubscribe;
+        }
 }
 
-export const firebaseLeaveService = new FirebaseLeaveService();
+    export const firebaseLeaveService = new FirebaseLeaveService();

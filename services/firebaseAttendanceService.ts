@@ -76,9 +76,8 @@ class FirebaseAttendanceService {
      * This will automatically update whenever attendance data changes in Firestore
      */
     subscribeToAttendance(callback: (attendance: any[]) => void) {
-        const q = query(this.attendanceCollection, orderBy('timestamp', 'desc'));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
+        // Removed orderBy to avoid Firebase index requirement
+        const unsubscribe = onSnapshot(this.attendanceCollection, (snapshot) => {
             const attendanceList = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
