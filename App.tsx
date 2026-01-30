@@ -85,12 +85,12 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    let isMounted = true; // Guard against state updates after unmount
+    const isMountedRef = { current: true }; // Use object ref instead of let variable
     console.log('🔥 Setting up Firebase real-time listeners...');
 
     // Listen to realtime service notifications
     const unsubNotifications = notificationService.subscribe((notification) => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       console.log('🔔 New notification:', notification);
       setNotifications(prev => [notification, ...prev]);
     });
@@ -98,45 +98,43 @@ const App: React.FC = () => {
     // FIREBASE REAL-TIME LISTENERS (Automatic cross-device sync!)
     console.log('🔥 Subscribing to Firebase attendance updates...');
     const unsubFirebaseAttendance = firebaseAttendanceService.subscribeToAttendance((attendanceData) => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       console.log('🔥 Firebase real-time: Attendance updated!', attendanceData.length, 'records');
-      // Firebase automatically syncs across ALL devices in real-time!
-      // No need for Supabase/Pusher/Broadcasting - Firebase handles everything!
       setAttendance(attendanceData);
-      localStorage.setItem('ls_attendance', JSON.stringify(attendanceData)); // Backup to localStorage
+      localStorage.setItem('ls_attendance', JSON.stringify(attendanceData));
     });
 
     console.log('🔥 Subscribing to Firebase leave requests...');
     const unsubFirebaseLeaves = firebaseLeaveService.subscribeToAllLeaves((leavesData) => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       console.log('🔥 Firebase real-time: Leave requests updated!', leavesData.length, 'requests');
       setLeaveRequests(leavesData);
-      localStorage.setItem('ls_leave_requests', JSON.stringify(leavesData)); // Backup to localStorage
+      localStorage.setItem('ls_leave_requests', JSON.stringify(leavesData));
     });
 
     console.log('🔥 Subscribing to Firebase employee updates...');
     const unsubFirebaseEmployees = firebaseEmployeeService.subscribeToEmployees(async (employeesData) => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) return;
       console.log('🔥 Firebase real-time: Employees updated!', employeesData.length);
 
       // AUTO-INITIALIZE: If database is empty, populate it
       if (employeesData.length === 0 && !localStorage.getItem('firebase_initialized')) {
         console.log('⚠️ Firebase database is empty! Initializing with default employees...');
-        if (!isMounted) return; // Check again before async operation
+        if (!isMountedRef.current) return;
         await firebaseEmployeeService.initializeEmployees(INITIAL_EMPLOYEES);
-        if (!isMounted) return; // Check again after async operation
+        if (!isMountedRef.current) return;
         localStorage.setItem('firebase_initialized', 'true');
-        return; // The listener will fire again after initialization
+        return;
       }
 
-      if (!isMounted) return; // Final check before state updates
+      if (!isMountedRef.current) return;
       setEmployees(employeesData);
       localStorage.setItem('ls_employees', JSON.stringify(employeesData));
 
       // Update current user if data changed
-      if (currentUser) {
+      if (currentUser && isMountedRef.current) {
         const updatedUser = employeesData.find(e => e.id === currentUser.id);
-        if (updatedUser && isMounted) {
+        if (updatedUser && isMountedRef.current) {
           setCurrentUser(updatedUser);
           localStorage.setItem('user', JSON.stringify(updatedUser));
         }
@@ -145,12 +143,18 @@ const App: React.FC = () => {
 
     // Cleanup
     return () => {
-      isMounted = false; // Prevent any pending async operations from updating state
+      isMountedRef.current = false; // Set to false FIRST
       console.log('🧹 Cleaning up Firebase listeners...');
-      unsubNotifications();
-      unsubFirebaseAttendance();
-      unsubFirebaseLeaves();
-      unsubFirebaseEmployees();
+
+      // Unsubscribe in try-catch to handle any errors
+      try {
+        unsubNotifications();
+        unsubFirebaseAttendance();
+        unsubFirebaseLeaves();
+        unsubFirebaseEmployees();
+      } catch (error) {
+        console.error('Error during cleanup:', error);
+      }
     };
   }, [currentUser]);
 
