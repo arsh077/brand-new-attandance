@@ -14,12 +14,14 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leaves, currentUser, onClockToggle }) => {
   const isAdmin = role === UserRole.ADMIN;
-  const today = new Date().toISOString().split('T')[0];
+  // Use local date to match firebaseAttendanceService
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [lastClickTime, setLastClickTime] = React.useState(0);
   const minClickDelay = 1000; // Minimum 1 second between clicks
 
-  // Real-time attendance calculation
+  // Real-time attendance calculation (updates automatically from Firebase!)
   const todayAttendance = attendance.filter(a => a.date === today);
   const presentToday = todayAttendance.filter(a => a.clockIn).length;
   const lateArrivals = todayAttendance.filter(a => a.status === AttendanceStatus.LATE).length;
@@ -183,10 +185,10 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                 <div
                   onClick={handleClockToggle}
                   className={`relative w-32 h-16 rounded-full transition-all duration-300 shadow-lg select-none ${isProcessing
-                      ? 'bg-gray-400 cursor-not-allowed opacity-60'
-                      : isClockedIn
-                        ? 'bg-red-500 shadow-red-200 cursor-pointer hover:bg-red-600 hover:scale-105'
-                        : 'bg-green-500 shadow-green-200 cursor-pointer hover:bg-green-600 hover:scale-105'
+                    ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                    : isClockedIn
+                      ? 'bg-red-500 shadow-red-200 cursor-pointer hover:bg-red-600 hover:scale-105'
+                      : 'bg-green-500 shadow-green-200 cursor-pointer hover:bg-green-600 hover:scale-105'
                     } ${isProcessing ? 'animate-pulse' : ''}`}
                   style={{
                     pointerEvents: isProcessing ? 'none' : 'auto',
@@ -220,10 +222,10 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
               {/* Status Text */}
               <div className="text-center">
                 <p className={`text-xl font-bold ${isProcessing
-                    ? 'text-gray-500'
-                    : isClockedIn
-                      ? 'text-red-600'
-                      : 'text-green-600'
+                  ? 'text-gray-500'
+                  : isClockedIn
+                    ? 'text-red-600'
+                    : 'text-green-600'
                   }`}>
                   {isProcessing ? 'Processing...' : isClockedIn ? 'Currently Clocked In' : 'Ready to Clock In'}
                 </p>
