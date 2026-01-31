@@ -21,8 +21,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      // 1. Local Validation (Check against constants.tsx)
-      const localUser = AUTHORIZED_USERS.find(u =>
+      // 1. Local Validation (Check against constants + Dynamic Admin Overrides)
+      const dynamicUsers = JSON.parse(localStorage.getItem('authorized_users_override') || '[]');
+      const allAuthorizedUsers = [...AUTHORIZED_USERS, ...dynamicUsers];
+
+      // Remove duplicates by email
+      const uniqueUsers = Array.from(new Map(allAuthorizedUsers.map(item => [item.email.toLowerCase(), item])).values());
+
+      const localUser = uniqueUsers.find(u =>
         u.email.toLowerCase() === email.trim().toLowerCase() &&
         u.password === password.trim()
       );

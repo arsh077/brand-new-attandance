@@ -14,6 +14,7 @@ import Leaves from './pages/Leaves';
 import Employees from './pages/Employees';
 import Reports from './pages/Reports';
 import AnalyticsDashboard from './components/Analytics/AnalyticsDashboard';
+import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
 import NotificationBell from './components/NotificationBell';
 
@@ -442,6 +443,14 @@ const App: React.FC = () => {
               // Note: We cannot easily delete from Auth without Admin SDK, 
               // but disabling access in DB prevents login via getEmployeeByEmail check in Login.tsx
             }
+          }}
+        />;
+      case 'admin':
+        return <AdminPanel 
+          employees={employees}
+          onUpdateSettings={(settings) => {
+            console.log('System settings updated:', settings);
+            // Apply settings to the system
           }}
         />;
       default:
