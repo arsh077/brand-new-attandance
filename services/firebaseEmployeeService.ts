@@ -66,6 +66,22 @@ class FirebaseEmployeeService {
             return { success: false, error };
         }
     }
+
+    /**
+     * Delete Employee
+     */
+    async deleteEmployee(id: string) {
+        try {
+            const { deleteDoc } = await import('firebase/firestore');
+            const employeeRef = doc(db, 'employees', id);
+            await deleteDoc(employeeRef);
+            console.log('🗑️ Firebase: Employee deleted', id);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Firebase deleteEmployee error:', error);
+            return { success: false, error };
+        }
+    }
 }
 
 export const firebaseEmployeeService = new FirebaseEmployeeService();

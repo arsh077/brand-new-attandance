@@ -97,7 +97,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               className="w-full h-full object-cover"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
-                e.currentTarget.parentElement!.innerHTML = '<div class="w-full h-full bg-indigo-600 rounded-full flex items-center justify-center text-white font-black text-3xl">LS</div>';
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  parent.innerHTML = '<div class="w-full h-full bg-indigo-600 rounded-full flex items-center justify-center text-white font-black text-3xl">LS</div>';
+                }
               }}
             />
           </div>

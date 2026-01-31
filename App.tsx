@@ -67,7 +67,7 @@ const App: React.FC = () => {
       localStorage.setItem('debug_cache_cleared_v4', 'true');
       console.log('✅ Debug cache cleared!');
     }
-    
+
     // Sync employee data with authorized users - Version 5.0
     const dataSyncDone = localStorage.getItem('data_sync_v5');
     if (!dataSyncDone) {
@@ -75,21 +75,23 @@ const App: React.FC = () => {
       // Reset employees to match only authorized users
       setEmployees(INITIAL_EMPLOYEES);
       localStorage.setItem('ls_employees', JSON.stringify(INITIAL_EMPLOYEES));
-      
-      // Clear any fake attendance data
-      const realAttendance = attendance.filter(a => 
+
+      // Clear any fake attendance data - get from localStorage to avoid dependency
+      const currentAttendance = JSON.parse(localStorage.getItem('ls_attendance') || '[]');
+      const realAttendance = currentAttendance.filter((a: any) =>
         INITIAL_EMPLOYEES.some(emp => emp.id === a.employeeId)
       );
       setAttendance(realAttendance);
       localStorage.setItem('ls_attendance', JSON.stringify(realAttendance));
-      
-      // Clear any fake leave requests
-      const realLeaves = leaveRequests.filter(l => 
+
+      // Clear any fake leave requests - get from localStorage to avoid dependency
+      const currentLeaves = JSON.parse(localStorage.getItem('ls_leave_requests') || '[]');
+      const realLeaves = currentLeaves.filter((l: any) =>
         INITIAL_EMPLOYEES.some(emp => emp.id === l.employeeId)
       );
       setLeaveRequests(realLeaves);
       localStorage.setItem('ls_leave_requests', JSON.stringify(realLeaves));
-      
+
       localStorage.setItem('data_sync_v5', 'true');
       console.log('✅ Data sync complete! Only real users data retained.');
     }
@@ -114,6 +116,11 @@ const App: React.FC = () => {
     const isMountedRef = { current: true }; // Use object ref instead of let variable
     const userId = currentUser.id; // Store userId separately to avoid closure issues
     console.log('🔥 Setting up Firebase real-time listeners for user:', userId);
+
+    // DAILY TASK: Check for Festivals (Triggers only once per day globally via Firestore)
+    import('./services/festivalScheduler').then(({ festivalScheduler }) => {
+      festivalScheduler.checkAndSendFestivalNotification();
+    });
 
     // Listen to realtime service notifications
     const unsubNotifications = notificationService.subscribe((notification) => {
@@ -404,9 +411,38 @@ const App: React.FC = () => {
       case 'employees':
         return <Employees
           employees={employees}
-          onAdd={(e) => setEmployees([...employees, e])}
+          onAdd={async (e, password) => {
+            // Optimistic update
+            setEmployees(prev => [...prev, e]);
+
+            // Persist to Firestore
+            await firebaseEmployeeService.updateEmployee(e);
+
+            // Register in Authentication if password provided
+            if (password) {
+              const result = await firebaseAuthService.registerSecondary(e.email, password);
+              if (result.success) {
+                console.log('✅ User registered in Auth:', e.email);
+                // alert(`✅ New staff member created!\nEmail: ${e.email}\nLogin enabled immediately.`);
+              } else {
+                alert(`⚠️ User added to DB but Auth registration failed: ${result.error}`);
+              }
+            }
+          }}
           onUpdate={handleEmployeeUpdate}
-          onDelete={(id) => confirm("Delete staff?") && setEmployees(employees.filter(e => e.id !== id))}
+          onDelete={async (id) => {
+            if (confirm("Delete staff member? This cannot be undone.")) {
+              // Optimistic update
+              setEmployees(prev => prev.filter(e => e.id !== id));
+
+              // Remove from Firestore
+              await firebaseEmployeeService.deleteEmployee(id);
+              console.log('🗑️ Deleted employee from DB:', id);
+
+              // Note: We cannot easily delete from Auth without Admin SDK, 
+              // but disabling access in DB prevents login via getEmployeeByEmail check in Login.tsx
+            }
+          }}
         />;
       default:
         return <div className="p-8 text-gray-400 font-bold italic">Module coming soon...</div>;
@@ -420,13 +456,7 @@ const App: React.FC = () => {
     return () => notificationService.cleanup();
   }, [currentUser]);
 
-  // Initialize Advanced Notification Listeners
-  useEffect(() => {
-    if (currentUser) {
-      notificationService.initialize(currentUser.id, currentUser.role);
-    }
-    return () => notificationService.cleanup();
-  }, [currentUser]);
+
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">

@@ -116,6 +116,28 @@ class NotificationService {
       });
       this.cleanupFns.push(unsub);
     }
+
+    // 4. Listen for General Announcements (FESTIVALS) - FOR EVERYONE
+    const announcementsQuery = query(
+      collection(db, 'announcements'),
+      where('createdAt', '>', startTime),
+      limit(1)
+    );
+
+    const unsubAnnouncements = onSnapshot(announcementsQuery, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          this.broadcast({
+            type: 'LEAVE_APPROVED', // Re-using an existing type icon (Green/Happy) or we can add a new one
+            title: data.title,
+            message: data.message,
+            employeeName: 'System'
+          });
+        }
+      });
+    });
+    this.cleanupFns.push(unsubAnnouncements);
   }
 
   subscribe(callback: (notification: Notification) => void) {
