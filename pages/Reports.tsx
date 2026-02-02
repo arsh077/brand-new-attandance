@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Employee, AttendanceRecord, AttendanceStatus } from '../types';
 import * as XLSX from 'xlsx';
+import DatePicker from '../components/DatePicker';
 
 interface ReportsProps {
   employees: Employee[];
@@ -28,6 +29,13 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
   const [selectedYear, setSelectedYear] = useState(2026);
   const [reportData, setReportData] = useState<MonthlyReport[]>([]);
 
+  // Date range picker state
+  const [viewMode, setViewMode] = useState<'monthly' | 'dateRange'>('monthly');
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [showStartCalendar, setShowStartCalendar] = useState(false);
+  const [showEndCalendar, setShowEndCalendar] = useState(false);
+
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -35,7 +43,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
 
   useEffect(() => {
     generateReport();
-  }, [selectedMonth, selectedYear, employees, attendance]);
+  }, [selectedMonth, selectedYear, startDate, endDate, viewMode, employees, attendance]);
 
   const calculateWorkingDays = (year: number, month: number): number => {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -54,14 +62,14 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
 
   const calculateHours = (clockIn: string, clockOut: string): number => {
     if (!clockIn || !clockOut) return 0;
-    
+
     const parseTime = (timeStr: string): Date => {
       const [time, period] = timeStr.split(' ');
       let [hours, minutes] = time.split(':').map(Number);
-      
+
       if (period === 'PM' && hours !== 12) hours += 12;
       if (period === 'AM' && hours === 12) hours = 0;
-      
+
       const date = new Date();
       date.setHours(hours, minutes, 0, 0);
       return date;
@@ -74,23 +82,44 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
   };
 
   const generateReport = () => {
-    const workingDays = calculateWorkingDays(selectedYear, selectedMonth);
-    const monthStart = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`;
-    const monthEnd = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-${new Date(selectedYear, selectedMonth + 1, 0).getDate()}`;
+    let workingDays: number;
+    let monthStart: string;
+    let monthEnd: string;
+
+    // Determine date range based on view mode
+    if (viewMode === 'dateRange' && startDate && endDate) {
+      // Custom date range
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      // Calculate working days in range
+      workingDays = 0;
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        if (d.getDay() !== 0) workingDays++; // Exclude Sundays
+      }
+
+      monthStart = `${start.getFullYear()}-${(start.getMonth() + 1).toString().padStart(2, '0')}-${start.getDate().toString().padStart(2, '0')}`;
+      monthEnd = `${end.getFullYear()}-${(end.getMonth() + 1).toString().padStart(2, '0')}-${end.getDate().toString().padStart(2, '0')}`;
+    } else {
+      // Monthly view (existing logic)
+      workingDays = calculateWorkingDays(selectedYear, selectedMonth);
+      monthStart = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`;
+      monthEnd = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-${new Date(selectedYear, selectedMonth + 1, 0).getDate()}`;
+    }
 
     const reports: MonthlyReport[] = employees.map(emp => {
-      // Filter attendance for this employee and month
+      // Filter attendance for this employee and date range
       const empAttendance = attendance.filter(a => {
-        return a.employeeId === emp.id && 
-               a.date >= monthStart && 
-               a.date <= monthEnd;
+        return a.employeeId === emp.id &&
+          a.date >= monthStart &&
+          a.date <= monthEnd;
       });
 
-      const daysPresent = empAttendance.filter(a => 
+      const daysPresent = empAttendance.filter(a =>
         a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE
       ).length;
 
-      const lateArrivals = empAttendance.filter(a => 
+      const lateArrivals = empAttendance.filter(a =>
         a.status === AttendanceStatus.LATE
       ).length;
 
@@ -181,7 +210,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    
+
     // Set column widths
     ws['!cols'] = [
       { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
@@ -216,46 +245,182 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
           className="px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           Download Excel
         </button>
       </div>
 
-      {/* Month/Year Selector */}
+      {/* View Mode Toggle & Filters */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <div className="flex gap-4 items-center">
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Month</label>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="px-4 py-2 border border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              {months.map((month, idx) => (
-                <option key={idx} value={idx}>{month}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Year</label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="px-4 py-2 border border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value={2025}>2025</option>
-              <option value={2026}>2026</option>
-              <option value={2027}>2027</option>
-            </select>
-          </div>
+        {/* View Mode Toggle */}
+        <div className="flex gap-2 mb-6">
           <button
-            onClick={generateReport}
-            className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors"
+            onClick={() => setViewMode('monthly')}
+            className={`px-4 py-2 rounded-lg font-bold transition-all ${viewMode === 'monthly'
+              ? 'bg-indigo-600 text-white shadow-md'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
           >
-            Generate Report
+            📅 Monthly View
+          </button>
+          <button
+            onClick={() => setViewMode('dateRange')}
+            className={`px-4 py-2 rounded-lg font-bold transition-all ${viewMode === 'dateRange'
+              ? 'bg-indigo-600 text-white shadow-md'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+          >
+            📆 Date Range View
           </button>
         </div>
+
+        {/* Monthly View Controls */}
+        {viewMode === 'monthly' && (
+          <div className="flex gap-4 items-center">
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Month</label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                className="px-4 py-2 border border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                {months.map((month, idx) => (
+                  <option key={idx} value={idx}>{month}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="px-4 py-2 border border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value={2025}>2025</option>
+                <option value={2026}>2026</option>
+                <option value={2027}>2027</option>
+              </select>
+            </div>
+            <button
+              onClick={generateReport}
+              className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors"
+            >
+              Generate Report
+            </button>
+          </div>
+        )}
+
+        {/* Date Range View Controls */}
+        {viewMode === 'dateRange' && (
+          <div className="space-y-4">
+            <div className="flex gap-6 items-start">
+              {/* Start Date Picker */}
+              <div className="relative">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                  Start Date
+                </label>
+                <button
+                  onClick={() => {
+                    setShowStartCalendar(!showStartCalendar);
+                    setShowEndCalendar(false);
+                  }}
+                  className="px-4 py-2 border border-gray-200 rounded-lg font-medium hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {startDate ? startDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  }) : 'Select Date'}
+                </button>
+                {showStartCalendar && (
+                  <div className="absolute top-full mt-2 z-10">
+                    <DatePicker
+                      selectedDate={startDate}
+                      onDateSelect={(date) => {
+                        setStartDate(date);
+                        setShowStartCalendar(false);
+                      }}
+                      maxDate={endDate}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* End Date Picker */}
+              <div className="relative">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                  End Date
+                </label>
+                <button
+                  onClick={() => {
+                    setShowEndCalendar(!showEndCalendar);
+                    setShowStartCalendar(false);
+                  }}
+                  className="px-4 py-2 border border-gray-200 rounded-lg font-medium hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {endDate ? endDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  }) : 'Select Date'}
+                </button>
+                {showEndCalendar && (
+                  <div className="absolute top-full mt-2 z-10">
+                    <DatePicker
+                      selectedDate={endDate}
+                      onDateSelect={(date) => {
+                        setEndDate(date);
+                        setShowEndCalendar(false);
+                      }}
+                      minDate={startDate}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Generate Button for Date Range */}
+              <button
+                onClick={generateReport}
+                disabled={!startDate || !endDate}
+                className={`mt-6 px-6 py-2 rounded-lg font-bold transition-colors ${startDate && endDate
+                  ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+              >
+                Generate Report
+              </button>
+            </div>
+
+            {/* Date Range Display */}
+            {startDate && endDate && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-indigo-700">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-bold">
+                    Showing data from {startDate.toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })} to {endDate.toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -293,7 +458,18 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
             Monthly Employee Attendance Report
           </h3>
           <p className="text-xs text-gray-500 font-medium mt-1">
-            {months[selectedMonth]} {selectedYear} - All employees on track
+            {viewMode === 'dateRange' && startDate && endDate
+              ? `${startDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              })} - ${endDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              })} - All employees on track`
+              : `${months[selectedMonth]} ${selectedYear} - All employees on track`
+            }
           </p>
         </div>
 
