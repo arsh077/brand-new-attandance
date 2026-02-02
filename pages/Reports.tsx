@@ -40,6 +40,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
   // Calendar view state
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>();
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>(employees);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -484,13 +485,78 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
               </div>
             )}
 
-            {/* Interactive Calendar */}
-            <DatePickerWithStats
-              selectedDate={selectedCalendarDate}
-              onDateSelect={(date) => setSelectedCalendarDate(date)}
-              attendance={attendance}
-              employees={employees}
-            />
+            {/* Calendar and Filter Side by Side */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Interactive Calendar - Takes 2 columns */}
+              <div className="lg:col-span-2">
+                <DatePickerWithStats
+                  selectedDate={selectedCalendarDate}
+                  onDateSelect={(date) => setSelectedCalendarDate(date)}
+                  attendance={attendance}
+                  employees={employees}
+                  selectedEmployeeId={selectedEmployeeId}
+                />
+              </div>
+
+              {/* Employee Filter - Takes 1 column (right side) */}
+              <div className="space-y-4">
+                {/* Employee Filter Dropdown */}
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-xl p-5 shadow-lg sticky top-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    <label className="text-sm font-black text-indigo-900 uppercase tracking-wider">
+                      Filter by Employee
+                    </label>
+                  </div>
+
+                  <select
+                    value={selectedEmployeeId}
+                    onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-indigo-300 rounded-lg font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm transition-all hover:border-indigo-400"
+                  >
+                    <option value="all">📊 All Employees ({employees.length})</option>
+                    <optgroup label="─── Individual Employees ───">
+                      {employees.map(emp => (
+                        <option key={emp.id} value={emp.id}>
+                          👤 {emp.name} - {emp.department}
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
+
+                  {selectedEmployeeId !== 'all' && (
+                    <div className="mt-4 p-3 bg-white rounded-lg border border-indigo-200">
+                      <div className="flex items-start gap-2 text-sm text-indigo-700 mb-2">
+                        <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                          <p className="font-bold text-indigo-900">Filtered View</p>
+                          <p className="text-xs text-indigo-600 mt-1">
+                            Showing: <span className="font-bold">{employees.find(e => e.id === selectedEmployeeId)?.name}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSelectedEmployeeId('all')}
+                        className="w-full text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-bold shadow-sm"
+                      >
+                        ✕ Clear Filter
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Filter Info */}
+                  <div className="mt-4 p-3 bg-indigo-100 rounded-lg">
+                    <p className="text-xs text-indigo-700 font-medium">
+                      💡 <span className="font-bold">Tip:</span> Select an employee to view their individual attendance on the calendar
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Employee Attendance Table for Selected Date */}
             {selectedCalendarDate && (
@@ -524,7 +590,12 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
                       {(() => {
                         const dateString = `${selectedCalendarDate.getFullYear()}-${(selectedCalendarDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedCalendarDate.getDate().toString().padStart(2, '0')}`;
 
-                        return employees.map(emp => {
+                        // Filter employees based on selection
+                        const displayEmployees = selectedEmployeeId === 'all'
+                          ? employees
+                          : employees.filter(emp => emp.id === selectedEmployeeId);
+
+                        return displayEmployees.map(emp => {
                           const empAttendance = attendance.find(a => a.employeeId === emp.id && a.date === dateString);
 
                           return (
