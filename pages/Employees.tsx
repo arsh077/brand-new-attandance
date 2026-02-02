@@ -120,7 +120,7 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onAdd, onUpdate, onDel
   return (
     <div className="animate-fade-in space-y-8">
       {/* Birthday Popup */}
-      <BirthdayPopup />
+      <BirthdayPopup employees={employees} />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Employee MGMT</h2>

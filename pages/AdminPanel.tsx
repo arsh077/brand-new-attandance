@@ -158,7 +158,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
   return (
     <div className="animate-fade-in space-y-8">
       {/* Birthday Popup */}
-      <BirthdayPopup />
+      <BirthdayPopup employees={employees} />
 
       {/* Header */}
       <div>
@@ -178,8 +178,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
             key={tab.id}
             onClick={() => setActiveSection(tab.id)}
             className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-bold text-sm transition-all ${activeSection === tab.id
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white text-indigo-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'
               }`}
           >
             <span>{tab.icon}</span>
@@ -268,8 +268,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${user.role === UserRole.ADMIN ? 'bg-purple-100 text-purple-700' :
-                            user.role === UserRole.MANAGER ? 'bg-blue-100 text-blue-700' :
-                              'bg-gray-100 text-gray-700'
+                          user.role === UserRole.MANAGER ? 'bg-blue-100 text-blue-700' :
+                            'bg-gray-100 text-gray-700'
                           }`}>
                           {user.role}
                         </span>
