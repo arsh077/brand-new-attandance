@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Employee, AttendanceRecord, AttendanceStatus } from '../types';
 import * as XLSX from 'xlsx';
 import DatePicker from '../components/DatePicker';
+import DatePickerWithStats from '../components/DatePickerWithStats';
 
 interface ReportsProps {
   employees: Employee[];
@@ -30,11 +31,15 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
   const [reportData, setReportData] = useState<MonthlyReport[]>([]);
 
   // Date range picker state
-  const [viewMode, setViewMode] = useState<'monthly' | 'dateRange'>('monthly');
+  const [viewMode, setViewMode] = useState<'monthly' | 'dateRange' | 'calendar'>('monthly');
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [showStartCalendar, setShowStartCalendar] = useState(false);
   const [showEndCalendar, setShowEndCalendar] = useState(false);
+
+  // Calendar view state
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>();
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>(employees);
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -273,6 +278,15 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
           >
             📆 Date Range View
           </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`px-4 py-2 rounded-lg font-bold transition-all ${viewMode === 'calendar'
+              ? 'bg-indigo-600 text-white shadow-md'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+          >
+            📊 Calendar View
+          </button>
         </div>
 
         {/* Monthly View Controls */}
@@ -421,116 +435,267 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
             )}
           </div>
         )}
+
+        {/* Calendar View Controls */}
+        {viewMode === 'calendar' && (
+          <div className="space-y-6">
+            {/* Selected Date Info */}
+            {selectedCalendarDate && (
+              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <h4 className="font-bold text-indigo-900">Selected Date</h4>
+                      <p className="text-indigo-700 text-lg font-black">
+                        {selectedCalendarDate.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    {(() => {
+                      const dateString = `${selectedCalendarDate.getFullYear()}-${(selectedCalendarDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedCalendarDate.getDate().toString().padStart(2, '0')}`;
+                      const dayAttendance = attendance.filter(a => a.date === dateString);
+                      const presentCount = dayAttendance.filter(a => a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE).length;
+                      const absentCount = employees.length - dayAttendance.length;
+
+                      return (
+                        <>
+                          <div className="text-center bg-white rounded-lg px-4 py-2 shadow-sm">
+                            <p className="text-xs text-gray-500 font-bold">PRESENT</p>
+                            <p className="text-2xl font-black text-green-600">{presentCount}</p>
+                          </div>
+                          <div className="text-center bg-white rounded-lg px-4 py-2 shadow-sm">
+                            <p className="text-xs text-gray-500 font-bold">ABSENT</p>
+                            <p className="text-2xl font-black text-red-600">{absentCount}</p>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Interactive Calendar */}
+            <DatePickerWithStats
+              selectedDate={selectedCalendarDate}
+              onDateSelect={(date) => setSelectedCalendarDate(date)}
+              attendance={attendance}
+              employees={employees}
+            />
+
+            {/* Employee Attendance Table for Selected Date */}
+            {selectedCalendarDate && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
+                <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-blue-50">
+                  <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">
+                    Employee Attendance - {selectedCalendarDate.toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </h3>
+                  <p className="text-xs text-gray-500 font-medium mt-1">
+                    Click any date on the calendar to view attendance details
+                  </p>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-cyan-500 text-white">
+                        <th className="px-4 py-3 text-left text-xs font-black uppercase">Employee Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-black uppercase">Department</th>
+                        <th className="px-4 py-3 text-center text-xs font-black uppercase">Date</th>
+                        <th className="px-4 py-3 text-center text-xs font-black uppercase">Status</th>
+                        <th className="px-4 py-3 text-center text-xs font-black uppercase">Clock In</th>
+                        <th className="px-4 py-3 text-center text-xs font-black uppercase">Clock Out</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {(() => {
+                        const dateString = `${selectedCalendarDate.getFullYear()}-${(selectedCalendarDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedCalendarDate.getDate().toString().padStart(2, '0')}`;
+
+                        return employees.map(emp => {
+                          const empAttendance = attendance.find(a => a.employeeId === emp.id && a.date === dateString);
+
+                          return (
+                            <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-3 font-medium text-gray-900">{emp.name}</td>
+                              <td className="px-4 py-3 text-gray-700">{emp.department}</td>
+                              <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium">
+                                {selectedCalendarDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {empAttendance ? (
+                                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${empAttendance.status === AttendanceStatus.PRESENT
+                                    ? 'bg-green-100 text-green-700'
+                                    : empAttendance.status === AttendanceStatus.LATE
+                                      ? 'bg-orange-100 text-orange-700'
+                                      : 'bg-red-100 text-red-700'
+                                    }`}>
+                                    {empAttendance.status}
+                                  </span>
+                                ) : (
+                                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                                    ABSENT
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-center text-gray-700 font-medium">
+                                {empAttendance?.clockIn || '-'}
+                              </td>
+                              <td className="px-4 py-3 text-center text-gray-700 font-medium">
+                                {empAttendance?.clockOut || '-'}
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Instructions */}
+            {!selectedCalendarDate && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+                <svg className="w-12 h-12 text-blue-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 className="text-lg font-bold text-blue-900 mb-2">Select a Date to View Attendance</h3>
+                <p className="text-blue-700">
+                  Click on any date in the calendar above to see which employees were present or absent on that day.
+                  <br />
+                  Green dots show present count, red dots show absent count.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-6 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase">Total Days</p>
-          <p className="text-2xl font-black text-gray-900 mt-1">{summaryData.totalDays}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase">Present</p>
-          <p className="text-2xl font-black text-green-600 mt-1">{summaryData.totalPresent}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase">Absent</p>
-          <p className="text-2xl font-black text-red-600 mt-1">{summaryData.totalAbsent}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase">Late</p>
-          <p className="text-2xl font-black text-orange-600 mt-1">{summaryData.totalLate}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase">Total Hours</p>
-          <p className="text-2xl font-black text-blue-600 mt-1">{summaryData.totalHours}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase">Overtime</p>
-          <p className="text-2xl font-black text-purple-600 mt-1">{summaryData.totalOvertime}</p>
-        </div>
-      </div>
+      {/* Summary Cards - Only show in Monthly and Date Range views */}
+      {viewMode !== 'calendar' && (
+        <>
+          <div className="grid grid-cols-6 gap-4">
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+              <p className="text-xs font-bold text-gray-400 uppercase">Total Days</p>
+              <p className="text-2xl font-black text-gray-900 mt-1">{summaryData.totalDays}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+              <p className="text-xs font-bold text-gray-400 uppercase">Present</p>
+              <p className="text-2xl font-black text-green-600 mt-1">{summaryData.totalPresent}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+              <p className="text-xs font-bold text-gray-400 uppercase">Absent</p>
+              <p className="text-2xl font-black text-red-600 mt-1">{summaryData.totalAbsent}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+              <p className="text-xs font-bold text-gray-400 uppercase">Late</p>
+              <p className="text-2xl font-black text-orange-600 mt-1">{summaryData.totalLate}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+              <p className="text-xs font-bold text-gray-400 uppercase">Total Hours</p>
+              <p className="text-2xl font-black text-blue-600 mt-1">{summaryData.totalHours}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+              <p className="text-xs font-bold text-gray-400 uppercase">Overtime</p>
+              <p className="text-2xl font-black text-purple-600 mt-1">{summaryData.totalOvertime}</p>
+            </div>
+          </div>
 
-      {/* Report Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
-        <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-blue-50">
-          <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">
-            Monthly Employee Attendance Report
-          </h3>
-          <p className="text-xs text-gray-500 font-medium mt-1">
-            {viewMode === 'dateRange' && startDate && endDate
-              ? `${startDate.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-              })} - ${endDate.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
-              })} - All employees on track`
-              : `${months[selectedMonth]} ${selectedYear} - All employees on track`
-            }
-          </p>
-        </div>
+          {/* Report Table */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
+            <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-blue-50">
+              <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">
+                Monthly Employee Attendance Report
+              </h3>
+              <p className="text-xs text-gray-500 font-medium mt-1">
+                {viewMode === 'dateRange' && startDate && endDate
+                  ? `${startDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })} - ${endDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })} - All employees on track`
+                  : `${months[selectedMonth]} ${selectedYear} - All employees on track`
+                }
+              </p>
+            </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-cyan-500 text-white">
-                <th className="px-4 py-3 text-left text-xs font-black uppercase">Employee Name</th>
-                <th className="px-4 py-3 text-left text-xs font-black uppercase">Department</th>
-                <th className="px-4 py-3 text-center text-xs font-black uppercase">Total Days</th>
-                <th className="px-4 py-3 text-center text-xs font-black uppercase">Days Present</th>
-                <th className="px-4 py-3 text-center text-xs font-black uppercase">Days Absent</th>
-                <th className="px-4 py-3 text-center text-xs font-black uppercase">Days on Leave</th>
-                <th className="px-4 py-3 text-center text-xs font-black uppercase">Late Arrivals</th>
-                <th className="px-4 py-3 text-center text-xs font-black uppercase">Early Departures</th>
-                <th className="px-4 py-3 text-center text-xs font-black uppercase">Total Hrs Wrkd</th>
-                <th className="px-4 py-3 text-center text-xs font-black uppercase">Overtime Hrs</th>
-                <th className="px-4 py-3 text-center text-xs font-black uppercase">Monthly Status</th>
-                <th className="px-4 py-3 text-left text-xs font-black uppercase">Notes</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {reportData.map((row, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-gray-900">{row.employeeName}</td>
-                  <td className="px-4 py-3 text-gray-700">{row.department}</td>
-                  <td className="px-4 py-3 text-center font-bold">{row.totalDays}</td>
-                  <td className="px-4 py-3 text-center font-bold text-green-600">{row.daysPresent}</td>
-                  <td className="px-4 py-3 text-center font-bold text-red-600">{row.daysAbsent}</td>
-                  <td className="px-4 py-3 text-center font-bold">{row.daysOnLeave}</td>
-                  <td className="px-4 py-3 text-center font-bold text-orange-600">{row.lateArrivals}</td>
-                  <td className="px-4 py-3 text-center font-bold">{row.earlyDepartures}</td>
-                  <td className="px-4 py-3 text-center font-bold text-blue-600">{row.totalHours}</td>
-                  <td className="px-4 py-3 text-center font-bold text-purple-600">{row.overtimeHours}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">
-                      {row.monthlyStatus}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{row.notes}</td>
-                </tr>
-              ))}
-              {/* Summary Row */}
-              <tr className="bg-cyan-100 font-bold">
-                <td className="px-4 py-3">SUMMARY</td>
-                <td className="px-4 py-3">All Depts</td>
-                <td className="px-4 py-3 text-center">{summaryData.totalDays}</td>
-                <td className="px-4 py-3 text-center text-green-600">{summaryData.totalPresent}</td>
-                <td className="px-4 py-3 text-center text-red-600">{summaryData.totalAbsent}</td>
-                <td className="px-4 py-3 text-center">0</td>
-                <td className="px-4 py-3 text-center text-orange-600">{summaryData.totalLate}</td>
-                <td className="px-4 py-3 text-center">0</td>
-                <td className="px-4 py-3 text-center text-blue-600">{summaryData.totalHours}</td>
-                <td className="px-4 py-3 text-center text-purple-600">{summaryData.totalOvertime}</td>
-                <td className="px-4 py-3 text-center">All Clear</td>
-                <td className="px-4 py-3">{reportData.length} employees</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-cyan-500 text-white">
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase">Employee Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase">Department</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Total Days</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Days Present</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Days Absent</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Days on Leave</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Late Arrivals</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Early Departures</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Total Hrs Wrkd</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Overtime Hrs</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Monthly Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-black uppercase">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {reportData.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-gray-900">{row.employeeName}</td>
+                      <td className="px-4 py-3 text-gray-700">{row.department}</td>
+                      <td className="px-4 py-3 text-center font-bold">{row.totalDays}</td>
+                      <td className="px-4 py-3 text-center font-bold text-green-600">{row.daysPresent}</td>
+                      <td className="px-4 py-3 text-center font-bold text-red-600">{row.daysAbsent}</td>
+                      <td className="px-4 py-3 text-center font-bold">{row.daysOnLeave}</td>
+                      <td className="px-4 py-3 text-center font-bold text-orange-600">{row.lateArrivals}</td>
+                      <td className="px-4 py-3 text-center font-bold">{row.earlyDepartures}</td>
+                      <td className="px-4 py-3 text-center font-bold text-blue-600">{row.totalHours}</td>
+                      <td className="px-4 py-3 text-center font-bold text-purple-600">{row.overtimeHours}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">
+                          {row.monthlyStatus}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{row.notes}</td>
+                    </tr>
+                  ))}
+                  {/* Summary Row */}
+                  <tr className="bg-cyan-100 font-bold">
+                    <td className="px-4 py-3">SUMMARY</td>
+                    <td className="px-4 py-3">All Depts</td>
+                    <td className="px-4 py-3 text-center">{summaryData.totalDays}</td>
+                    <td className="px-4 py-3 text-center text-green-600">{summaryData.totalPresent}</td>
+                    <td className="px-4 py-3 text-center text-red-600">{summaryData.totalAbsent}</td>
+                    <td className="px-4 py-3 text-center">0</td>
+                    <td className="px-4 py-3 text-center text-orange-600">{summaryData.totalLate}</td>
+                    <td className="px-4 py-3 text-center">0</td>
+                    <td className="px-4 py-3 text-center text-blue-600">{summaryData.totalHours}</td>
+                    <td className="px-4 py-3 text-center text-purple-600">{summaryData.totalOvertime}</td>
+                    <td className="px-4 py-3 text-center">All Clear</td>
+                    <td className="px-4 py-3">{reportData.length} employees</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
