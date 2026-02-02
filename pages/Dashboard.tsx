@@ -2,6 +2,7 @@ import React from 'react';
 import { UserRole, Employee, AttendanceRecord, LeaveRequest, AttendanceStatus } from '../types';
 import DashboardStats from '../components/DashboardStats';
 import RealtimeAttendance from '../components/RealtimeAttendance';
+import BirthdayPopup from '../components/BirthdayPopup';
 
 interface DashboardProps {
   role: UserRole;
@@ -126,6 +127,9 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
 
   return (
     <div className="animate-fade-in space-y-10">
+      {/* Birthday Popup - Shows for all users */}
+      <BirthdayPopup employees={employees} />
+
       <div>
         <h2 className="text-3xl font-black text-gray-900 tracking-tight">Welcome Back, {currentUser.name}</h2>
         <p className="text-gray-400 font-medium">Dashboard Overview • Jan 2026</p>

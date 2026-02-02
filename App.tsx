@@ -123,6 +123,11 @@ const App: React.FC = () => {
       festivalScheduler.checkAndSendFestivalNotification();
     });
 
+    // DAILY TASK: Check for Birthdays (Triggers only once per day globally via Firestore)
+    import('./services/birthdayScheduler').then(({ birthdayScheduler }) => {
+      birthdayScheduler.checkAndSendBirthdayNotifications(employees);
+    });
+
     // Listen to realtime service notifications
     const unsubNotifications = notificationService.subscribe((notification) => {
       if (!isMountedRef.current) return;
@@ -446,7 +451,7 @@ const App: React.FC = () => {
           }}
         />;
       case 'admin':
-        return <AdminPanel 
+        return <AdminPanel
           employees={employees}
           onUpdateSettings={(settings) => {
             console.log('System settings updated:', settings);

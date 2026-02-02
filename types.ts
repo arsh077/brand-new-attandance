@@ -36,6 +36,7 @@ export interface Employee {
   role: UserRole;
   status: 'ACTIVE' | 'INACTIVE';
   dateJoined: string;
+  dateOfBirth?: string; // Format: YYYY-MM-DD
   leaveBalance: Record<LeaveType, number>;
 }
 

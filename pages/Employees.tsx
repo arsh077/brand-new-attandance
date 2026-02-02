@@ -55,6 +55,7 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onAdd, onUpdate, onDel
       role: fd.get('role') as UserRole,
       status: 'ACTIVE',
       dateJoined: new Date().toISOString().split('T')[0],
+      dateOfBirth: fd.get('dateOfBirth') as string || undefined,
       leaveBalance: { [LeaveType.CASUAL]: 10, [LeaveType.SICK]: 10, [LeaveType.EARNED]: 10, [LeaveType.LOP]: 0 }
     };
     // Pass the generated password so we can create the user account in Firebase
@@ -172,7 +173,7 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onAdd, onUpdate, onDel
                   </td>
                   <td className="px-8 py-6">
                     <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${emp.role === UserRole.ADMIN ? 'bg-purple-100 text-purple-700' :
-                        emp.role === UserRole.MANAGER ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-gray-600'
+                      emp.role === UserRole.MANAGER ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-gray-600'
                       }`}>
                       {emp.role}
                     </span>
@@ -204,6 +205,9 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onAdd, onUpdate, onDel
               <div className="grid grid-cols-2 gap-4">
                 <input name="email" type="email" placeholder="Email Address" required className="w-full bg-slate-50 border-0 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
                 <input name="phone" placeholder="Contact Number" required className="w-full bg-slate-50 border-0 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
+              </div>
+              <div>
+                <input name="dateOfBirth" type="date" placeholder="Date of Birth" className="w-full bg-slate-50 border-0 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <input name="department" placeholder="Department" required className="w-full bg-slate-50 border-0 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
@@ -288,6 +292,17 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onAdd, onUpdate, onDel
                       placeholder="Job Title"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={editingEmp.dateOfBirth || ''}
+                    onChange={e => setEditingEmp({ ...editingEmp, dateOfBirth: e.target.value })}
+                    className="w-full bg-white border-2 border-indigo-100 rounded-2xl px-6 py-4 text-sm font-bold outline-none focus:border-indigo-500 transition-all"
+                    placeholder="YYYY-MM-DD"
+                  />
                 </div>
               </div>
 
