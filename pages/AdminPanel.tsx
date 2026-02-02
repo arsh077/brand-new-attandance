@@ -3,7 +3,6 @@ import { UserRole, Employee } from '../types';
 import { AUTHORIZED_USERS } from '../constants';
 import { firebaseEmployeeService } from '../services/firebaseEmployeeService';
 import { firebaseAuthService } from '../services/firebaseAuthService';
-import BirthdayPopup from '../components/BirthdayPopup';
 
 interface AdminPanelProps {
   employees: Employee[];
@@ -157,9 +156,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
 
   return (
     <div className="animate-fade-in space-y-8">
-      {/* Birthday Popup */}
-      <BirthdayPopup employees={employees} />
-
       {/* Header */}
       <div>
         <h2 className="text-3xl font-black text-gray-900 tracking-tight">System Administration</h2>
