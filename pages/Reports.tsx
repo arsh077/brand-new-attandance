@@ -49,7 +49,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
 
   useEffect(() => {
     generateReport();
-  }, [selectedMonth, selectedYear, startDate, endDate, viewMode, employees, attendance]);
+  }, [selectedMonth, selectedYear, startDate, endDate, viewMode, employees, attendance, selectedEmployeeId]);
 
   const calculateWorkingDays = (year: number, month: number): number => {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -113,7 +113,12 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
       monthEnd = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-${new Date(selectedYear, selectedMonth + 1, 0).getDate()}`;
     }
 
-    const reports: MonthlyReport[] = employees.map(emp => {
+    // Filter employees based on selection (for Monthly and Date Range views)
+    const employeesToReport = selectedEmployeeId === 'all'
+      ? employees
+      : employees.filter(emp => emp.id === selectedEmployeeId);
+
+    const reports: MonthlyReport[] = employeesToReport.map(emp => {
       // Filter attendance for this employee and date range
       const empAttendance = attendance.filter(a => {
         return a.employeeId === emp.id &&
@@ -292,44 +297,81 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
 
         {/* Monthly View Controls */}
         {viewMode === 'monthly' && (
-          <div className="flex gap-4 items-center">
-            <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Month</label>
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="px-4 py-2 border border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          <div className="space-y-4">
+            <div className="flex gap-4 items-center">
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Month</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                  className="px-4 py-2 border border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {months.map((month, idx) => (
+                    <option key={idx} value={idx}>{month}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Year</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="px-4 py-2 border border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value={2025}>2025</option>
+                  <option value={2026}>2026</option>
+                  <option value={2027}>2027</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Filter Employee</label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="px-4 py-2 border border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
+                >
+                  <option value="all">📊 All Employees ({employees.length})</option>
+                  <optgroup label="─── Individual Employees ───">
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>
+                        👤 {emp.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+              <button
+                onClick={generateReport}
+                className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors"
               >
-                {months.map((month, idx) => (
-                  <option key={idx} value={idx}>{month}</option>
-                ))}
-              </select>
+                Generate Report
+              </button>
             </div>
-            <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Year</label>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="px-4 py-2 border border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value={2025}>2025</option>
-                <option value={2026}>2026</option>
-                <option value={2027}>2027</option>
-              </select>
-            </div>
-            <button
-              onClick={generateReport}
-              className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition-colors"
-            >
-              Generate Report
-            </button>
+            {selectedEmployeeId !== 'all' && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-indigo-700">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-bold">
+                    Filtered View: {employees.find(e => e.id === selectedEmployeeId)?.name}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedEmployeeId('all')}
+                  className="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-bold"
+                >
+                  ✕ Clear Filter
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {/* Date Range View Controls */}
         {viewMode === 'dateRange' && (
           <div className="space-y-4">
-            <div className="flex gap-6 items-start">
+            <div className="flex gap-6 items-start flex-wrap">
               {/* Start Date Picker */}
               <div className="relative">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
@@ -400,6 +442,25 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
                 )}
               </div>
 
+              {/* Employee Filter */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Filter Employee</label>
+                <select
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                  className="px-4 py-2 border border-gray-200 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
+                >
+                  <option value="all">📊 All Employees ({employees.length})</option>
+                  <optgroup label="─── Individual Employees ───">
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>
+                        👤 {emp.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+
               {/* Generate Button for Date Range */}
               <button
                 onClick={generateReport}
@@ -413,10 +474,30 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
               </button>
             </div>
 
+            {/* Filter Info */}
+            {selectedEmployeeId !== 'all' && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-indigo-700">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="font-bold">
+                    Filtered View: {employees.find(e => e.id === selectedEmployeeId)?.name}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedEmployeeId('all')}
+                  className="text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-bold"
+                >
+                  ✕ Clear Filter
+                </button>
+              </div>
+            )}
+
             {/* Date Range Display */}
             {startDate && endDate && (
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-indigo-700">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-blue-700">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
