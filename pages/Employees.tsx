@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Employee, UserRole, LeaveType } from '../types';
 import { ICONS } from '../constants';
+import BirthdayPopup from '../components/BirthdayPopup';
 
 // Password generator function
 const generatePassword = (): string => {
@@ -118,6 +119,8 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onAdd, onUpdate, onDel
 
   return (
     <div className="animate-fade-in space-y-8">
+      {/* Birthday Popup */}
+      <BirthdayPopup />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Employee MGMT</h2>

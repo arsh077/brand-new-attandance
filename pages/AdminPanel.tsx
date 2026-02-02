@@ -3,6 +3,7 @@ import { UserRole, Employee } from '../types';
 import { AUTHORIZED_USERS } from '../constants';
 import { firebaseEmployeeService } from '../services/firebaseEmployeeService';
 import { firebaseAuthService } from '../services/firebaseAuthService';
+import BirthdayPopup from '../components/BirthdayPopup';
 
 interface AdminPanelProps {
   employees: Employee[];
@@ -32,7 +33,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
     role: UserRole.EMPLOYEE,
     name: ''
   });
-  
+
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
     companyName: 'Legal Success India',
     workingHours: { start: '10:00', end: '18:30' },
@@ -48,7 +49,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
     try {
       // 1. Create Firebase Auth Account
       const authResult = await firebaseAuthService.registerSecondary(newUser.email, newUser.password);
-      
+
       if (!authResult.success) {
         alert('❌ Firebase Auth Error: ' + authResult.error);
         return;
@@ -78,12 +79,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
         role: newUser.role,
         name: newUser.name
       }];
-      
+
       setAuthorizedUsers(updatedUsers);
       localStorage.setItem('authorized_users_override', JSON.stringify(updatedUsers));
 
       alert(`✅ User Created Successfully!\n\nEmail: ${newUser.email}\nPassword: ${newUser.password}\nRole: ${newUser.role}\n\n⚠️ Save these credentials securely!`);
-      
+
       // Reset form
       setNewUser({ email: '', password: '', role: UserRole.EMPLOYEE, name: '' });
 
@@ -97,7 +98,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
   const handleRoleChange = async (userEmail: string, newRole: UserRole) => {
     try {
       // Update in authorized users
-      const updatedUsers = authorizedUsers.map(user => 
+      const updatedUsers = authorizedUsers.map(user =>
         user.email === userEmail ? { ...user, role: newRole } : user
       );
       setAuthorizedUsers(updatedUsers);
@@ -156,6 +157,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
 
   return (
     <div className="animate-fade-in space-y-8">
+      {/* Birthday Popup */}
+      <BirthdayPopup />
+
       {/* Header */}
       <div>
         <h2 className="text-3xl font-black text-gray-900 tracking-tight">System Administration</h2>
@@ -173,11 +177,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
           <button
             key={tab.id}
             onClick={() => setActiveSection(tab.id)}
-            className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-bold text-sm transition-all ${
-              activeSection === tab.id 
-                ? 'bg-white text-indigo-600 shadow-sm' 
+            className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-bold text-sm transition-all ${activeSection === tab.id
+                ? 'bg-white text-indigo-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <span>{tab.icon}</span>
             <span>{tab.label}</span>
@@ -264,11 +267,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          user.role === UserRole.ADMIN ? 'bg-purple-100 text-purple-700' :
-                          user.role === UserRole.MANAGER ? 'bg-blue-100 text-blue-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${user.role === UserRole.ADMIN ? 'bg-purple-100 text-purple-700' :
+                            user.role === UserRole.MANAGER ? 'bg-blue-100 text-blue-700' :
+                              'bg-gray-100 text-gray-700'
+                          }`}>
                           {user.role}
                         </span>
                       </td>
@@ -314,15 +316,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
                 className="w-full bg-gray-50 border-0 rounded-2xl px-4 py-3 font-bold"
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Work Start Time</label>
                 <input
                   type="time"
                   value={systemSettings.workingHours.start}
-                  onChange={(e) => setSystemSettings({ 
-                    ...systemSettings, 
+                  onChange={(e) => setSystemSettings({
+                    ...systemSettings,
                     workingHours: { ...systemSettings.workingHours, start: e.target.value }
                   })}
                   className="w-full bg-gray-50 border-0 rounded-2xl px-4 py-3 font-bold"
@@ -333,8 +335,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
                 <input
                   type="time"
                   value={systemSettings.workingHours.end}
-                  onChange={(e) => setSystemSettings({ 
-                    ...systemSettings, 
+                  onChange={(e) => setSystemSettings({
+                    ...systemSettings,
                     workingHours: { ...systemSettings.workingHours, end: e.target.value }
                   })}
                   className="w-full bg-gray-50 border-0 rounded-2xl px-4 py-3 font-bold"
