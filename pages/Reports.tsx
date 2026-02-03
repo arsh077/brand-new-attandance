@@ -17,6 +17,7 @@ interface MonthlyReport {
   daysAbsent: number;
   daysOnLeave: number;
   lateArrivals: number;
+  halfDays: number;
   earlyDepartures: number;
   totalHours: string;
   overtimeHours: string;
@@ -51,12 +52,31 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
     generateReport();
   }, [selectedMonth, selectedYear, startDate, endDate, viewMode, employees, attendance, selectedEmployeeId]);
 
+  // System Start Date: Feb 2, 2026
+  const SYSTEM_START_DATE = new Date('2026-02-02');
+
   const calculateWorkingDays = (year: number, month: number): number => {
+    // Determine the end date for calculation
+    const now = new Date();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
+    let endDay = daysInMonth;
+
+    // If current month, stop at today
+    if (year === now.getFullYear() && month === now.getMonth()) {
+      endDay = now.getDate();
+    }
+
+    // If future month, return 0
+    if (new Date(year, month, 1) > now) return 0;
+
     let workingDays = 0;
 
-    for (let day = 1; day <= daysInMonth; day++) {
+    for (let day = 1; day <= endDay; day++) {
       const date = new Date(year, month, day);
+
+      // Skip if before system start date
+      if (date < SYSTEM_START_DATE) continue;
+
       const dayOfWeek = date.getDay();
       // Exclude Sunday (0)
       if (dayOfWeek !== 0) {
@@ -91,23 +111,28 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
     let workingDays: number;
     let monthStart: string;
     let monthEnd: string;
+    let reportStartDate: Date;
+    let reportEndDate: Date;
 
     // Determine date range based on view mode
     if (viewMode === 'dateRange' && startDate && endDate) {
       // Custom date range
       const start = new Date(startDate);
       const end = new Date(endDate);
+      reportStartDate = start < SYSTEM_START_DATE ? SYSTEM_START_DATE : start;
+      const now = new Date();
+      reportEndDate = end > now ? now : end;
 
       // Calculate working days in range
       workingDays = 0;
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      for (let d = new Date(reportStartDate); d <= reportEndDate; d.setDate(d.getDate() + 1)) {
         if (d.getDay() !== 0) workingDays++; // Exclude Sundays
       }
 
       monthStart = `${start.getFullYear()}-${(start.getMonth() + 1).toString().padStart(2, '0')}-${start.getDate().toString().padStart(2, '0')}`;
       monthEnd = `${end.getFullYear()}-${(end.getMonth() + 1).toString().padStart(2, '0')}-${end.getDate().toString().padStart(2, '0')}`;
     } else {
-      // Monthly view (existing logic)
+      // Monthly view
       workingDays = calculateWorkingDays(selectedYear, selectedMonth);
       monthStart = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-01`;
       monthEnd = `${selectedYear}-${(selectedMonth + 1).toString().padStart(2, '0')}-${new Date(selectedYear, selectedMonth + 1, 0).getDate()}`;
@@ -127,19 +152,25 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
       });
 
       const daysPresent = empAttendance.filter(a =>
-        a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE
+        a.status === AttendanceStatus.PRESENT ||
+        a.status === AttendanceStatus.LATE ||
+        a.status === AttendanceStatus.HALFDAY
       ).length;
 
       const lateArrivals = empAttendance.filter(a =>
         a.status === AttendanceStatus.LATE
       ).length;
 
+      const halfDays = empAttendance.filter(a =>
+        a.status === AttendanceStatus.HALFDAY
+      ).length;
+
       const earlyDepartures = empAttendance.filter(a => {
         if (!a.clockOut) return false;
         const [time] = a.clockOut.split(' ');
         const [hours, minutes] = time.split(':').map(Number);
-        // Early if before 6:40 PM (18 hours 40 minutes)
-        return hours < 18 || (hours === 18 && minutes < 40);
+        // Early if before 6:30 PM (18 hours 30 minutes) - Updated to match system settings default
+        return hours < 18 || (hours === 18 && minutes < 30);
       }).length;
 
       // Calculate total hours
@@ -154,14 +185,21 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
       const expectedHours = daysPresent * 8;
       const overtimeHours = Math.max(0, totalHours - expectedHours);
 
-      const daysAbsent = workingDays - daysPresent;
-      const attendancePercentage = (daysPresent / workingDays) * 100;
+      // Days Absent logic: Total Working Days - Days Present
+      // If employee has 0 present days, absent should be workingDays (assuming they were employed)
+      // If workingDays is 0 (future dates), absent is 0.
+      const daysAbsent = Math.max(0, workingDays - daysPresent);
+
+      const attendancePercentage = workingDays > 0 ? (daysPresent / workingDays) * 100 : 0;
 
       let monthlyStatus = 'Payroll Ready';
       let notes = '';
 
       if (lateArrivals > 3) {
         notes = `${lateArrivals} late arrivals`;
+      }
+      if (halfDays > 0) {
+        notes += notes ? `, ${halfDays} half days` : `${halfDays} half days`;
       }
       if (earlyDepartures > 0) {
         notes += notes ? `, ${earlyDepartures} early exits` : `${earlyDepartures} early exits`;
@@ -178,6 +216,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
         daysAbsent,
         daysOnLeave: 0, // Can be calculated from leave requests
         lateArrivals,
+        halfDays,
         earlyDepartures,
         totalHours: totalHours.toFixed(0),
         overtimeHours: overtimeHours.toFixed(0),
@@ -196,12 +235,12 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
       [],
       [
         'Employee Name', 'Department', 'Total Days', 'Days Present', 'Days Absent',
-        'Days on Leave', 'Late Arrivals', 'Early Departures', 'Total Hrs Wrkd',
+        'Days on Leave', 'Late Arrivals', 'Half Days', 'Early Departures', 'Total Hrs Wrkd',
         'Overtime Hrs', 'Monthly Status', 'Notes'
       ],
       ...reportData.map(r => [
         r.employeeName, r.department, r.totalDays, r.daysPresent, r.daysAbsent,
-        r.daysOnLeave, r.lateArrivals, r.earlyDepartures, r.totalHours,
+        r.daysOnLeave, r.lateArrivals, r.halfDays, r.earlyDepartures, r.totalHours,
         r.overtimeHours, r.monthlyStatus, r.notes
       ]),
       [],
@@ -212,6 +251,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
         reportData.reduce((sum, r) => sum + r.daysAbsent, 0),
         reportData.reduce((sum, r) => sum + r.daysOnLeave, 0),
         reportData.reduce((sum, r) => sum + r.lateArrivals, 0),
+        reportData.reduce((sum, r) => sum + r.halfDays, 0),
         reportData.reduce((sum, r) => sum + r.earlyDepartures, 0),
         reportData.reduce((sum, r) => sum + parseInt(r.totalHours), 0),
         reportData.reduce((sum, r) => sum + parseInt(r.overtimeHours), 0),
@@ -225,7 +265,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
     // Set column widths
     ws['!cols'] = [
       { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
-      { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 },
+      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 },
       { wch: 15 }, { wch: 20 }
     ];
 
@@ -799,6 +839,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
                     <th className="px-4 py-3 text-center text-xs font-black uppercase">Days Absent</th>
                     <th className="px-4 py-3 text-center text-xs font-black uppercase">Days on Leave</th>
                     <th className="px-4 py-3 text-center text-xs font-black uppercase">Late Arrivals</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Half Days</th>
                     <th className="px-4 py-3 text-center text-xs font-black uppercase">Early Departures</th>
                     <th className="px-4 py-3 text-center text-xs font-black uppercase">Total Hrs Wrkd</th>
                     <th className="px-4 py-3 text-center text-xs font-black uppercase">Overtime Hrs</th>
@@ -815,6 +856,8 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
                       <td className="px-4 py-3 text-center font-bold text-green-600">{row.daysPresent}</td>
                       <td className="px-4 py-3 text-center font-bold text-red-600">{row.daysAbsent}</td>
                       <td className="px-4 py-3 text-center font-bold">{row.daysOnLeave}</td>
+                      <td className="px-4 py-3 text-center font-bold text-orange-600">{row.lateArrivals}</td>
+                      <td className="px-4 py-3 text-center font-bold text-purple-600">{row.halfDays}</td>
                       <td className="px-4 py-3 text-center font-bold text-orange-600">{row.lateArrivals}</td>
                       <td className="px-4 py-3 text-center font-bold">{row.earlyDepartures}</td>
                       <td className="px-4 py-3 text-center font-bold text-blue-600">{row.totalHours}</td>
