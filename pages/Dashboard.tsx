@@ -132,7 +132,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
 
       <div>
         <h2 className="text-3xl font-black text-gray-900 tracking-tight">Welcome Back, {currentUser.name}</h2>
-        <p className="text-gray-400 font-medium">Dashboard Overview • Jan 2026</p>
+        <p className="text-gray-400 font-medium">Dashboard Overview • {now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
       </div>
 
       <DashboardStats stats={isAdmin ? adminStats : [
