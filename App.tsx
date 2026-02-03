@@ -5,6 +5,7 @@ import { firebaseAuthService } from './services/firebaseAuthService';
 import { firebaseAttendanceService } from './services/firebaseAttendanceService';
 import { firebaseLeaveService } from './services/firebaseLeaveService';
 import { firebaseEmployeeService } from './services/firebaseEmployeeService';
+import { firebaseSettingsService, SystemSettings, DEFAULT_SETTINGS } from './services/firebaseSettingsService';
 import { notificationService, Notification } from './services/notificationService';
 import { INITIAL_EMPLOYEES, AUTHORIZED_USERS } from './constants';
 import Sidebar from './components/Sidebar';
@@ -44,6 +45,7 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('ls_notifications');
     return saved ? JSON.parse(saved) : [];
   });
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
 
   // Clear old demo data on first load (one-time reset)
   useEffect(() => {
@@ -152,6 +154,12 @@ const App: React.FC = () => {
       localStorage.setItem('ls_leave_requests', JSON.stringify(leavesData));
     });
 
+    // Subscribe to System Settings
+    const unsubSettings = firebaseSettingsService.subscribeToSettings((settings) => {
+      if (!isMountedRef.current) return;
+      setSystemSettings(settings);
+    });
+
     console.log('🔥 Subscribing to Firebase employee updates...');
     const unsubFirebaseEmployees = firebaseEmployeeService.subscribeToEmployees(async (employeesData) => {
       if (!isMountedRef.current) return;
@@ -170,6 +178,8 @@ const App: React.FC = () => {
       if (!isMountedRef.current) return;
       setEmployees(employeesData);
       localStorage.setItem('ls_employees', JSON.stringify(employeesData));
+
+
 
       // Update current user if data changed - use userId instead of currentUser
       const updatedUser = employeesData.find(e => e.id === userId);
@@ -190,6 +200,7 @@ const App: React.FC = () => {
         unsubFirebaseAttendance();
         unsubFirebaseLeaves();
         unsubFirebaseEmployees();
+        unsubSettings();
       } catch (error) {
         console.error('Error during cleanup:', error);
       }
@@ -314,13 +325,34 @@ const App: React.FC = () => {
         // Clock In
         console.log('🟢 Clocking in... (via Firebase)');
         const now = new Date();
-        const isLate = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() > 40);
+        const currentTimeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }); // HH:mm format for comparison
+
+        // Parse thresholds from settings
+        const lateThreshold = systemSettings.lateThreshold || '10:40';
+        const halfDayThreshold = systemSettings.halfDayThreshold || '14:00';
+
+        let status = AttendanceStatus.PRESENT;
+        let isLate = false;
+
+        // Logic priority:
+        // 1. If after half-day threshold -> HALFDAY
+        // 2. If after late threshold -> LATE
+        // 3. Else -> PRESENT
+
+        if (currentTimeStr > halfDayThreshold) {
+          status = AttendanceStatus.HALFDAY;
+          isLate = true; // Technically late too
+        } else if (currentTimeStr > lateThreshold) {
+          status = AttendanceStatus.LATE;
+          isLate = true;
+        }
+
         const clockInTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 
         const employee = employees.find(e => e.id === empId);
         if (employee) {
           // Firebase create
-          const result = await firebaseAttendanceService.clockIn(empId, employee.name, clockInTime, isLate);
+          const result = await firebaseAttendanceService.clockIn(empId, employee.name, clockInTime, status, isLate);
           if (!result.success) throw new Error('Firebase clock-in failed');
           return { success: true, type: 'IN' };
         }
@@ -453,9 +485,11 @@ const App: React.FC = () => {
       case 'admin':
         return <AdminPanel
           employees={employees}
-          onUpdateSettings={(settings) => {
+          systemSettings={systemSettings} // Pass real-time settings
+          onUpdateSettings={async (settings) => {
             console.log('System settings updated:', settings);
-            // Apply settings to the system
+            // Apply settings to the system via Firebase
+            await firebaseSettingsService.updateSettings(settings);
           }}
         />;
       default:

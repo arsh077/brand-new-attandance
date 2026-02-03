@@ -1,20 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserRole, Employee } from '../types';
 import { AUTHORIZED_USERS } from '../constants';
 import { firebaseEmployeeService } from '../services/firebaseEmployeeService';
 import { firebaseAuthService } from '../services/firebaseAuthService';
 
-interface AdminPanelProps {
-  employees: Employee[];
-  onUpdateSettings: (settings: any) => void;
-}
-
 interface SystemSettings {
   companyName: string;
   workingHours: { start: string; end: string };
   lateThreshold: string;
+  halfDayThreshold: string;
   weeklyOffs: string[];
   holidays: { date: string; name: string }[];
+}
+
+interface AdminPanelProps {
+  employees: Employee[];
+  systemSettings?: SystemSettings;
+  onUpdateSettings: (settings: SystemSettings) => void;
 }
 
 interface NewUserCredentials {
@@ -24,7 +26,7 @@ interface NewUserCredentials {
   name: string;
 }
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: propSettings, onUpdateSettings }) => {
   const [activeSection, setActiveSection] = useState('users');
   const [newUser, setNewUser] = useState<NewUserCredentials>({
     email: '',
@@ -33,13 +35,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
     name: ''
   });
 
-  const [systemSettings, setSystemSettings] = useState<SystemSettings>({
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>(propSettings || {
     companyName: 'Legal Success India',
     workingHours: { start: '10:00', end: '18:30' },
     lateThreshold: '10:40',
+    halfDayThreshold: '14:00',
     weeklyOffs: ['Sunday'],
     holidays: []
   });
+
+  // Sync state with props when they update (from Firebase)
+  useEffect(() => {
+    if (propSettings) {
+      setSystemSettings(propSettings);
+    }
+  }, [propSettings]);
 
   const [authorizedUsers, setAuthorizedUsers] = useState(AUTHORIZED_USERS);
 
@@ -138,9 +148,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
   };
 
   // Update System Settings
-  const handleUpdateSettings = () => {
-    localStorage.setItem('system_settings', JSON.stringify(systemSettings));
-    onUpdateSettings(systemSettings);
+  const handleUpdateSettings = async () => {
+    // localStorage.setItem('system_settings', JSON.stringify(systemSettings)); // Deprecated favoring Firebase
+    await onUpdateSettings(systemSettings);
     alert('✅ System settings updated successfully!');
   };
 
@@ -340,14 +350,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, onUpdateSettings }) 
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Late Threshold Time</label>
-              <input
-                type="time"
-                value={systemSettings.lateThreshold}
-                onChange={(e) => setSystemSettings({ ...systemSettings, lateThreshold: e.target.value })}
-                className="w-full bg-gray-50 border-0 rounded-2xl px-4 py-3 font-bold"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Late Threshold Time</label>
+                <input
+                  type="time"
+                  value={systemSettings.lateThreshold}
+                  onChange={(e) => setSystemSettings({ ...systemSettings, lateThreshold: e.target.value })}
+                  className="w-full bg-gray-50 border-0 rounded-2xl px-4 py-3 font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Half Day Time</label>
+                <input
+                  type="time"
+                  value={systemSettings.halfDayThreshold || '14:00'}
+                  onChange={(e) => setSystemSettings({ ...systemSettings, halfDayThreshold: e.target.value })}
+                  className="w-full bg-gray-50 border-0 rounded-2xl px-4 py-3 font-bold"
+                />
+              </div>
             </div>
 
             <button

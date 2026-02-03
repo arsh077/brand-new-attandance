@@ -19,7 +19,7 @@ class FirebaseAttendanceService {
     /**
      * Clock In - Create new attendance record
      */
-    async clockIn(employeeId: string, employeeName: string, clockInTime: string, isLate: boolean) {
+    async clockIn(employeeId: string, employeeName: string, clockInTime: string, status: string, isLate: boolean) {
         try {
             const now = new Date();
             const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -34,7 +34,7 @@ class FirebaseAttendanceService {
                 clockIn: clockInTime,
                 clockOut: '',
                 isLate,
-                status: isLate ? 'LATE' : 'PRESENT',
+                status: status, // Use passed status directly
                 timestamp: Timestamp.now(),
                 createdAt: new Date().toISOString()
             };
