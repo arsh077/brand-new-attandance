@@ -8,7 +8,7 @@ interface RealtimeAttendanceProps {
 
 interface LiveAttendance {
   employee: Employee;
-  status: 'CLOCKED_IN' | 'CLOCKED_OUT' | 'NOT_STARTED' | 'LATE';
+  status: 'CLOCKED_IN' | 'CLOCKED_OUT' | 'NOT_STARTED' | 'LATE' | 'HALFDAY';
   clockIn?: string;
   clockOut?: string;
   duration?: string;
@@ -48,6 +48,7 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
       }
 
       const isLate = empAttendance.status === AttendanceStatus.LATE;
+      const isHalfDay = empAttendance.status === AttendanceStatus.HALFDAY;
       const hasClockOut = !!empAttendance.clockOut;
 
       let duration = '';
@@ -57,9 +58,14 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
         duration = calculateDuration(clockInTime, endTime);
       }
 
+      let status: LiveAttendance['status'] = 'CLOCKED_IN';
+      if (hasClockOut) status = 'CLOCKED_OUT';
+      else if (isHalfDay) status = 'HALFDAY';
+      else if (isLate) status = 'LATE';
+
       return {
         employee: emp,
-        status: hasClockOut ? 'CLOCKED_OUT' : (isLate ? 'LATE' : 'CLOCKED_IN'),
+        status: status,
         clockIn: empAttendance.clockIn,
         clockOut: empAttendance.clockOut,
         duration
@@ -68,7 +74,7 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
 
     // Sort: Clocked in first, then late, then clocked out, then not started
     liveAttendanceData.sort((a, b) => {
-      const order = { 'CLOCKED_IN': 1, 'LATE': 2, 'CLOCKED_OUT': 3, 'NOT_STARTED': 4 };
+      const order = { 'CLOCKED_IN': 1, 'LATE': 2, 'HALFDAY': 3, 'CLOCKED_OUT': 4, 'NOT_STARTED': 5 };
       return order[a.status] - order[b.status];
     });
 
@@ -79,10 +85,10 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
     const today = new Date();
     const [time, period] = timeStr.split(' ');
     let [hours, minutes] = time.split(':').map(Number);
-    
+
     if (period === 'PM' && hours !== 12) hours += 12;
     if (period === 'AM' && hours === 12) hours = 0;
-    
+
     today.setHours(hours, minutes, 0, 0);
     return today;
   };
@@ -98,6 +104,7 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
     switch (status) {
       case 'CLOCKED_IN': return 'bg-green-100 text-green-700 border-green-300';
       case 'LATE': return 'bg-orange-100 text-orange-700 border-orange-300';
+      case 'HALFDAY': return 'bg-red-100 text-red-700 border-red-300';
       case 'CLOCKED_OUT': return 'bg-gray-100 text-gray-700 border-gray-300';
       case 'NOT_STARTED': return 'bg-slate-100 text-slate-500 border-slate-300';
       default: return 'bg-gray-100 text-gray-700';
@@ -110,6 +117,8 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
         return <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>;
       case 'LATE':
         return <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>;
+      case 'HALFDAY':
+        return <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>;
       case 'CLOCKED_OUT':
         return <div className="w-3 h-3 bg-gray-400 rounded-full"></div>;
       case 'NOT_STARTED':
@@ -121,13 +130,14 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
     switch (status) {
       case 'CLOCKED_IN': return 'Active Now';
       case 'LATE': return 'Late Arrival';
+      case 'HALFDAY': return 'Half Day';
       case 'CLOCKED_OUT': return 'Completed';
       case 'NOT_STARTED': return 'Not Started';
     }
   };
 
-  const clockedInCount = liveData.filter(d => d.status === 'CLOCKED_IN' || d.status === 'LATE').length;
-  const lateCount = liveData.filter(d => d.status === 'LATE').length;
+  const clockedInCount = liveData.filter(d => d.status === 'CLOCKED_IN' || d.status === 'LATE' || d.status === 'HALFDAY').length;
+  const lateCount = liveData.filter(d => d.status === 'LATE' || d.status === 'HALFDAY').length;
   const completedCount = liveData.filter(d => d.status === 'CLOCKED_OUT').length;
 
   return (
@@ -154,7 +164,7 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
             </div>
             <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
@@ -168,7 +178,7 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
             </div>
             <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
@@ -184,7 +194,7 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
             </div>
             <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
               <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
           </div>
