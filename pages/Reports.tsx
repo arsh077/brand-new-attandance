@@ -21,7 +21,7 @@ interface MonthlyReport {
   earlyDepartures: number;
   totalHours: string;
   overtimeHours: string;
-  monthlyStatus: string;
+  payableDays: number;
   notes: string;
 }
 
@@ -192,7 +192,9 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
 
       const attendancePercentage = workingDays > 0 ? (daysPresent / workingDays) * 100 : 0;
 
-      let monthlyStatus = 'Payroll Ready';
+      // Payable Days: Days Present (includes half days) - (Half Days * 0.5)
+      const payableDays = daysPresent - (halfDays * 0.5);
+
       let notes = '';
 
       if (lateArrivals > 3) {
@@ -203,9 +205,6 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
       }
       if (earlyDepartures > 0) {
         notes += notes ? `, ${earlyDepartures} early exits` : `${earlyDepartures} early exits`;
-      }
-      if (attendancePercentage < 85) {
-        monthlyStatus = 'Review Required';
       }
 
       return {
@@ -220,7 +219,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
         earlyDepartures,
         totalHours: totalHours.toFixed(0),
         overtimeHours: overtimeHours.toFixed(0),
-        monthlyStatus,
+        payableDays,
         notes: notes || '-'
       };
     });
@@ -236,12 +235,12 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
       [
         'Employee Name', 'Department', 'Total Days', 'Days Present', 'Days Absent',
         'Days on Leave', 'Late Arrivals', 'Half Days', 'Early Departures', 'Total Hrs Wrkd',
-        'Overtime Hrs', 'Monthly Status', 'Notes'
+        'Overtime Hrs', 'Payable Days', 'Notes'
       ],
       ...reportData.map(r => [
         r.employeeName, r.department, r.totalDays, r.daysPresent, r.daysAbsent,
         r.daysOnLeave, r.lateArrivals, r.halfDays, r.earlyDepartures, r.totalHours,
-        r.overtimeHours, r.monthlyStatus, r.notes
+        r.overtimeHours, r.payableDays, r.notes
       ]),
       [],
       [
@@ -255,7 +254,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
         reportData.reduce((sum, r) => sum + r.earlyDepartures, 0),
         reportData.reduce((sum, r) => sum + parseInt(r.totalHours), 0),
         reportData.reduce((sum, r) => sum + parseInt(r.overtimeHours), 0),
-        'All Clear',
+        reportData.reduce((sum, r) => sum + r.payableDays, 0),
         `${reportData.length} employees`
       ]
     ];
@@ -843,7 +842,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
                     <th className="px-4 py-3 text-center text-xs font-black uppercase">Early Departures</th>
                     <th className="px-4 py-3 text-center text-xs font-black uppercase">Total Hrs Wrkd</th>
                     <th className="px-4 py-3 text-center text-xs font-black uppercase">Overtime Hrs</th>
-                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Monthly Status</th>
+                    <th className="px-4 py-3 text-center text-xs font-black uppercase">Payable Days</th>
                     <th className="px-4 py-3 text-left text-xs font-black uppercase">Notes</th>
                   </tr>
                 </thead>
@@ -862,10 +861,8 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
                       <td className="px-4 py-3 text-center font-bold">{row.earlyDepartures}</td>
                       <td className="px-4 py-3 text-center font-bold text-blue-600">{row.totalHours}</td>
                       <td className="px-4 py-3 text-center font-bold text-purple-600">{row.overtimeHours}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">
-                          {row.monthlyStatus}
-                        </span>
+                      <td className="px-4 py-3 text-center font-black text-indigo-600 text-lg">
+                        {row.payableDays}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">{row.notes}</td>
                     </tr>
@@ -882,7 +879,7 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
                     <td className="px-4 py-3 text-center">0</td>
                     <td className="px-4 py-3 text-center text-blue-600">{summaryData.totalHours}</td>
                     <td className="px-4 py-3 text-center text-purple-600">{summaryData.totalOvertime}</td>
-                    <td className="px-4 py-3 text-center">All Clear</td>
+                    <td className="px-4 py-3 text-center font-black text-indigo-600">{reportData.reduce((sum, r) => sum + r.payableDays, 0)}</td>
                     <td className="px-4 py-3">{reportData.length} employees</td>
                   </tr>
                 </tbody>
