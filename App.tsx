@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserRole, Employee, AttendanceRecord, LeaveRequest, LeaveStatus, AttendanceStatus } from './types';
 import { firebaseAuthService } from './services/firebaseAuthService';
 import { firebaseAttendanceService } from './services/firebaseAttendanceService';
@@ -24,6 +24,7 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('ls_employees');
     return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
   });
+  const employeesRef = useRef<Employee[]>(employees);
 
   const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => {
     const saved = localStorage.getItem('ls_attendance');
@@ -46,6 +47,10 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
+
+  useEffect(() => {
+    employeesRef.current = employees;
+  }, [employees]);
 
   // Clear old demo data on first load (one-time reset)
   useEffect(() => {
@@ -127,7 +132,7 @@ const App: React.FC = () => {
 
     // DAILY TASK: Check for Birthdays (Triggers only once per day globally via Firestore)
     import('./services/birthdayScheduler').then(({ birthdayScheduler }) => {
-      birthdayScheduler.checkAndSendBirthdayNotifications(employees);
+      birthdayScheduler.checkAndSendBirthdayNotifications(employeesRef.current);
     });
 
     // Listen to realtime service notifications
@@ -205,7 +210,7 @@ const App: React.FC = () => {
         console.error('Error during cleanup:', error);
       }
     };
-  }, []); // Empty dependency array - only run once on login
+  }, [currentUser]);
 
   const handleLogin = (role: UserRole, email: string) => {
     // First, ensure employees are loaded from INITIAL_EMPLOYEES if not in state
@@ -405,6 +410,7 @@ const App: React.FC = () => {
           attendance={attendance}
           leaves={leaveRequests}
           currentUser={currentUser}
+          systemSettings={systemSettings}
           onClockToggle={onClockToggle}
         />;
       case 'attendance':

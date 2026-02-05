@@ -4,6 +4,8 @@ import { Employee, AttendanceRecord, AttendanceStatus } from '../types';
 interface RealtimeAttendanceProps {
   employees: Employee[];
   attendance: AttendanceRecord[];
+  lateThreshold?: string;
+  halfDayThreshold?: string;
 }
 
 interface LiveAttendance {
@@ -14,7 +16,7 @@ interface LiveAttendance {
   duration?: string;
 }
 
-const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, attendance }) => {
+const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, attendance, lateThreshold, halfDayThreshold }) => {
   const [liveData, setLiveData] = useState<LiveAttendance[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -36,6 +38,8 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
     // Calculate live attendance data
     const today = new Date().toISOString().split('T')[0];
     const todayAttendance = attendance.filter(a => a.date === today);
+    const lateThresholdMinutes = timeStringToMinutes(lateThreshold);
+    const halfDayThresholdMinutes = timeStringToMinutes(halfDayThreshold);
 
     const liveAttendanceData: LiveAttendance[] = employees.map(emp => {
       const empAttendance = todayAttendance.find(a => a.employeeId === emp.id);
@@ -47,8 +51,14 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
         };
       }
 
-      const isLate = empAttendance.status === AttendanceStatus.LATE;
-      const isHalfDay = empAttendance.status === AttendanceStatus.HALFDAY;
+      const derivedStatus = getDerivedStatus(
+        empAttendance.status,
+        empAttendance.clockIn,
+        lateThresholdMinutes,
+        halfDayThresholdMinutes
+      );
+      const isLate = derivedStatus === AttendanceStatus.LATE;
+      const isHalfDay = derivedStatus === AttendanceStatus.HALFDAY;
       const hasClockOut = !!empAttendance.clockOut;
 
       let duration = '';
@@ -79,7 +89,7 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
     });
 
     setLiveData(liveAttendanceData);
-  }, [employees, attendance, currentTime]);
+  }, [employees, attendance, currentTime, lateThreshold, halfDayThreshold]);
 
   const parseTime = (timeStr: string): Date => {
     const today = new Date();
@@ -91,6 +101,41 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
 
     today.setHours(hours, minutes, 0, 0);
     return today;
+  };
+
+  const timeStringToMinutes = (timeStr?: string): number | null => {
+    if (!timeStr) return null;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    return hours * 60 + minutes;
+  };
+
+  const timeLabelToMinutes = (timeStr?: string): number | null => {
+    if (!timeStr) return null;
+    const [time, period] = timeStr.split(' ');
+    if (!time || !period) return null;
+    let [hours, minutes] = time.split(':').map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    if (period.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+    if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  };
+
+  const getDerivedStatus = (
+    baseStatus: AttendanceStatus,
+    clockIn?: string,
+    lateMinutes?: number | null,
+    halfDayMinutes?: number | null
+  ): AttendanceStatus => {
+    const clockInMinutes = timeLabelToMinutes(clockIn);
+    if (clockInMinutes === null) return baseStatus;
+    if (halfDayMinutes !== null && clockInMinutes >= halfDayMinutes) {
+      return AttendanceStatus.HALFDAY;
+    }
+    if (lateMinutes !== null && clockInMinutes > lateMinutes) {
+      return AttendanceStatus.LATE;
+    }
+    return baseStatus;
   };
 
   const calculateDuration = (start: Date, end: Date): string => {

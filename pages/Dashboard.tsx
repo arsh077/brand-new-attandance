@@ -10,10 +10,14 @@ interface DashboardProps {
   attendance: AttendanceRecord[];
   leaves: LeaveRequest[];
   currentUser: Employee;
+  systemSettings: {
+    lateThreshold: string;
+    halfDayThreshold: string;
+  };
   onClockToggle: (empId: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leaves, currentUser, onClockToggle }) => {
+const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leaves, currentUser, systemSettings, onClockToggle }) => {
   const isAdmin = role === UserRole.ADMIN;
   // Use local date to match firebaseAttendanceService
   const now = new Date();
@@ -143,7 +147,12 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
       {isAdmin && (
         <>
           {/* Real-time Attendance Tracker */}
-          <RealtimeAttendance employees={employees} attendance={attendance} />
+          <RealtimeAttendance
+            employees={employees}
+            attendance={attendance}
+            lateThreshold={systemSettings.lateThreshold}
+            halfDayThreshold={systemSettings.halfDayThreshold}
+          />
 
           {/* Monthly Payroll Report */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden animate-slide-up">
