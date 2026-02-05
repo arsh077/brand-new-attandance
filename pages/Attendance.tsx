@@ -17,18 +17,26 @@ const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onCloc
     return () => clearInterval(t);
   }, []);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const activeRecord = attendance.find(a => a.employeeId === currentUser.id && a.date === todayStr && !a.clockOut);
   const myHistory = attendance.filter(a => a.employeeId === currentUser.id);
 
-  // Mock calendar data for Jan 2026
-  const daysInMonth = 31;
-  const calendarDays = Array.from({ length: daysInMonth }, (_, i) => {
-    const day = i + 1;
-    const dateStr = `2026-01-${day.toString().padStart(2, '0')}`;
+  const calendarYear = today.getFullYear();
+  const calendarMonth = today.getMonth();
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+  const calendarDays: { day: number | null; record?: AttendanceRecord }[] = [];
+
+  for (let i = 0; i < firstDay; i++) {
+    calendarDays.push({ day: null });
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const record = attendance.find(a => a.employeeId === currentUser.id && a.date === dateStr);
-    return { day, record };
-  });
+    calendarDays.push({ day, record });
+  }
 
   const getStatusColor = (status: AttendanceStatus) => {
     switch(status) {
@@ -74,7 +82,9 @@ const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onCloc
         {/* Calendar View */}
         <div className="bg-white rounded-[40px] border border-gray-100 shadow-xl p-8">
           <div className="flex justify-between items-center mb-8">
-            <h3 className="font-black text-gray-900 uppercase text-xs tracking-widest">January 2026</h3>
+            <h3 className="font-black text-gray-900 uppercase text-xs tracking-widest">
+              {today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </h3>
             <div className="flex space-x-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               <span className="w-2 h-2 rounded-full bg-orange-500"></span>
@@ -85,14 +95,17 @@ const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onCloc
             {['S','M','T','W','T','F','S'].map(d => (
               <div key={d} className="text-center text-[10px] font-black text-gray-300 mb-2 uppercase">{d}</div>
             ))}
-            {Array.from({length: 4}).map((_,i) => <div key={i}></div>)} {/* Offset for Jan 2026 starting Thu */}
-            {calendarDays.map(({day, record}) => (
-              <div key={day} className="relative group aspect-square flex items-center justify-center rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer">
-                <span className="text-sm font-bold text-gray-700">{day}</span>
-                {record && (
-                  <div className={`absolute bottom-2 w-1.5 h-1.5 rounded-full ${getStatusColor(record.status)}`}></div>
-                )}
-              </div>
+            {calendarDays.map(({ day, record }, index) => (
+              day ? (
+                <div key={day} className="relative group aspect-square flex items-center justify-center rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer">
+                  <span className="text-sm font-bold text-gray-700">{day}</span>
+                  {record && (
+                    <div className={`absolute bottom-2 w-1.5 h-1.5 rounded-full ${getStatusColor(record.status)}`}></div>
+                  )}
+                </div>
+              ) : (
+                <div key={`empty-${index}`} className="aspect-square"></div>
+              )
             ))}
           </div>
         </div>
@@ -111,7 +124,15 @@ const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onCloc
                   <div className="flex justify-between items-center mb-1">
                     <p className="text-sm font-black text-gray-900">{new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
                     <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-lg ${
-                      log.status === AttendanceStatus.PRESENT ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
+                      log.status === AttendanceStatus.PRESENT
+                        ? 'bg-emerald-50 text-emerald-600'
+                        : log.status === AttendanceStatus.LATE
+                        ? 'bg-orange-50 text-orange-600'
+                        : log.status === AttendanceStatus.HALFDAY
+                        ? 'bg-yellow-50 text-yellow-700'
+                        : log.status === AttendanceStatus.ABSENT
+                        ? 'bg-red-50 text-red-600'
+                        : 'bg-slate-50 text-slate-600'
                     }`}>{log.status}</span>
                   </div>
                   <p className="text-xs font-bold text-indigo-700 italic">{log.clockIn} - {log.clockOut || 'Shift Active'}</p>

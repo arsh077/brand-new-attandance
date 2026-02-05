@@ -55,9 +55,11 @@ const DatePickerWithStats: React.FC<DatePickerWithStatsProps> = ({
             ? employees
             : employees.filter(emp => emp.id === selectedEmployeeId);
 
-        const dayAttendance = attendance.filter(a => a.date === dateString);
+        const dayAttendance = selectedEmployeeId === 'all'
+            ? attendance.filter(a => a.date === dateString)
+            : attendance.filter(a => a.date === dateString && a.employeeId === selectedEmployeeId);
 
-        const presentRecords = dayAttendance.filter(a => a.status === AttendanceStatus.PRESENT);
+        const presentRecords = dayAttendance.filter(a => a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.HALFDAY);
         const lateRecords = dayAttendance.filter(a => a.status === AttendanceStatus.LATE);
 
         // Get employee details for late and absent

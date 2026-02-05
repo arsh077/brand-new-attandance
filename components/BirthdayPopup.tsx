@@ -16,7 +16,8 @@ const BirthdayPopup: React.FC<BirthdayPopupProps> = ({ employees }) => {
 
         if (todaysBirthdays.length > 0) {
             // Check if user has already dismissed today's birthday popup
-            const today = new Date().toISOString().split('T')[0];
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const dismissedDate = localStorage.getItem('birthdayPopupDismissed');
 
             if (dismissedDate !== today) {
@@ -27,7 +28,8 @@ const BirthdayPopup: React.FC<BirthdayPopupProps> = ({ employees }) => {
     }, [employees]);
 
     const handleDismiss = () => {
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         localStorage.setItem('birthdayPopupDismissed', today);
         setIsVisible(false);
     };

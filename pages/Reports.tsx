@@ -584,7 +584,11 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
                     {(() => {
                       const dateString = `${selectedCalendarDate.getFullYear()}-${(selectedCalendarDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedCalendarDate.getDate().toString().padStart(2, '0')}`;
                       const dayAttendance = attendance.filter(a => a.date === dateString);
-                      const presentCount = dayAttendance.filter(a => a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE).length;
+                      const presentCount = dayAttendance.filter(a =>
+                        a.status === AttendanceStatus.PRESENT ||
+                        a.status === AttendanceStatus.LATE ||
+                        a.status === AttendanceStatus.HALFDAY
+                      ).length;
                       const absentCount = employees.length - dayAttendance.length;
 
                       return (

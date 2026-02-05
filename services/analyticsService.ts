@@ -25,7 +25,7 @@ class AnalyticsService {
         for (let i = 6; i >= 0; i--) {
             const d = new Date();
             d.setDate(today.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
             const dayRecords = attendance.filter(a => a.date === dateStr);
             const present = dayRecords.filter(a => a.status === AttendanceStatus.PRESENT).length;
@@ -52,7 +52,8 @@ class AnalyticsService {
      */
     getDepartmentStats(attendance: AttendanceRecord[], employees: Employee[]): DepartmentStats[] {
         const departments = Array.from(new Set(employees.map(e => e.department)));
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const todayAttendance = attendance.filter(a => a.date === today);
 
         return departments.map(dept => {
@@ -76,7 +77,8 @@ class AnalyticsService {
      * Get Summary Metrics
      */
     getSummaryMetrics(attendance: AttendanceRecord[], employees: Employee[], leaves: LeaveRequest[]) {
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const todayRecords = attendance.filter(a => a.date === today);
 
         const totalEmployees = employees.length;

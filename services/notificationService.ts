@@ -92,7 +92,8 @@ class NotificationService {
 
     // 3. Listen for Late Arrivals (Admin) from Attendance
     if (role === UserRole.ADMIN) {
-      const today = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const q = query(
         collection(db, 'attendance'),
         where('date', '==', today),
