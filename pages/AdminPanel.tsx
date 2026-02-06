@@ -47,9 +47,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
   // Sync state with props when they update (from Firebase)
   useEffect(() => {
     if (propSettings) {
-      setSystemSettings(propSettings);
+      // Only update if settings actually changed to prevent infinite loop
+      const currentSettingsStr = JSON.stringify(systemSettings);
+      const propSettingsStr = JSON.stringify(propSettings);
+      if (currentSettingsStr !== propSettingsStr) {
+        console.log('🔥 [DEBUG] AdminPanel: Syncing system settings from Firebase');
+        setSystemSettings(propSettings);
+      }
     }
-  }, [propSettings]);
+  }, [propSettings]); // Don't include systemSettings in dependencies to avoid loop
 
   const [authorizedUsers, setAuthorizedUsers] = useState(AUTHORIZED_USERS);
 

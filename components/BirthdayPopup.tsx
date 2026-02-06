@@ -11,27 +11,42 @@ const BirthdayPopup: React.FC<BirthdayPopupProps> = ({ employees }) => {
     const [birthdayEmployees, setBirthdayEmployees] = useState<Employee[]>([]);
 
     useEffect(() => {
-        // Check for birthdays today
+        // Check for birthdays today - ONLY RUN ONCE on mount
+        const now = new Date();
+        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+        // Check if popup was already shown in this session
+        const sessionKey = `birthdayPopupShown_${today}`;
+        const shownInSession = sessionStorage.getItem(sessionKey);
+
+        if (shownInSession === 'true') {
+            console.log('🎂 Birthday popup already shown in this session');
+            return;
+        }
+
         const todaysBirthdays = birthdayScheduler.getTodaysBirthdays(employees);
 
         if (todaysBirthdays.length > 0) {
-            // Check if user has already dismissed today's birthday popup
-            const now = new Date();
-            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            // Check if user has already dismissed today's birthday popup (persistent)
             const dismissedDate = localStorage.getItem('birthdayPopupDismissed');
 
             if (dismissedDate !== today) {
+                console.log('🎂 Showing birthday popup for:', todaysBirthdays.map(e => e.name).join(', '));
                 setBirthdayEmployees(todaysBirthdays);
                 setIsVisible(true);
+                // Mark as shown in this session
+                sessionStorage.setItem(sessionKey, 'true');
             }
         }
-    }, [employees]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // ✅ Run only once on mount, not on employees change
 
     const handleDismiss = () => {
         const now = new Date();
-        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
         localStorage.setItem('birthdayPopupDismissed', today);
         setIsVisible(false);
+        console.log('🎂 Birthday popup dismissed for today');
     };
 
     if (!isVisible || birthdayEmployees.length === 0) {

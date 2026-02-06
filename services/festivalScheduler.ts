@@ -65,8 +65,8 @@ class FestivalSchedulerService {
     async checkAndSendFestivalNotification() {
         try {
             const now = new Date();
-            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            const year = new Date().getFullYear();
+            const today = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const year = now.getFullYear();
 
             // Get festivals (API or Fallback)
             const festivals = await this.fetchHolidays(year);

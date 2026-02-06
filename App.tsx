@@ -18,8 +18,11 @@ import AnalyticsDashboard from './components/Analytics/AnalyticsDashboard';
 import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
 import NotificationBell from './components/NotificationBell';
+import BirthdayPopup from './components/BirthdayPopup';
 
 const App: React.FC = () => {
+  console.log('🚀 [DEBUG] App component mounting/rendering...');
+
   const [employees, setEmployees] = useState<Employee[]>(() => {
     const saved = localStorage.getItem('ls_employees');
     return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
@@ -107,11 +110,17 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Save to localStorage for offline backup
-    localStorage.setItem('ls_employees', JSON.stringify(employees));
-    localStorage.setItem('ls_attendance', JSON.stringify(attendance));
-    localStorage.setItem('ls_leave_requests', JSON.stringify(leaveRequests));
-    localStorage.setItem('ls_notifications', JSON.stringify(notifications));
-    localStorage.setItem('last_update', Date.now().toString());
+    try {
+      console.log('💾 [DEBUG] Saving data to localStorage...');
+      localStorage.setItem('ls_employees', JSON.stringify(employees));
+      localStorage.setItem('ls_attendance', JSON.stringify(attendance));
+      localStorage.setItem('ls_leave_requests', JSON.stringify(leaveRequests));
+      localStorage.setItem('ls_notifications', JSON.stringify(notifications));
+      localStorage.setItem('last_update', Date.now().toString());
+    } catch (error) {
+      console.error('🔴 [DEBUG] Error saving to localStorage:', error);
+      // localStorage might be full or disabled - continue without crashing
+    }
 
     // Firebase handles real-time sync automatically via listeners
     // No need to manually broadcast - Firebase Firestore does this automatically!
@@ -123,81 +132,114 @@ const App: React.FC = () => {
 
     const isMountedRef = { current: true }; // Use object ref instead of let variable
     const userId = currentUser.id; // Store userId separately to avoid closure issues
-    console.log('🔥 Setting up Firebase real-time listeners for user:', userId);
+    const userRole = currentUser.role; // Store role separately
+    console.log('🔥 [DEBUG] Setting up Firebase real-time listeners for user:', userId, 'role:', userRole);
 
-    // DAILY TASK: Check for Festivals (Triggers only once per day globally via Firestore)
-    import('./services/festivalScheduler').then(({ festivalScheduler }) => {
-      festivalScheduler.checkAndSendFestivalNotification();
-    });
+    // DAILY TASK: Check for Festivals & Birthdays (Run only ONCE per session)
+    const schedulersInitialized = sessionStorage.getItem('schedulersInitialized');
+    if (!schedulersInitialized) {
+      console.log('🎉 Initializing festival and birthday schedulers...');
+      import('./services/festivalScheduler').then(({ festivalScheduler }) => {
+        festivalScheduler.checkAndSendFestivalNotification();
+      });
 
-    // DAILY TASK: Check for Birthdays (Triggers only once per day globally via Firestore)
-    import('./services/birthdayScheduler').then(({ birthdayScheduler }) => {
-      birthdayScheduler.checkAndSendBirthdayNotifications(employeesRef.current);
-    });
+      import('./services/birthdayScheduler').then(({ birthdayScheduler }) => {
+        birthdayScheduler.checkAndSendBirthdayNotifications(employeesRef.current);
+      });
+
+      sessionStorage.setItem('schedulersInitialized', 'true');
+    }
 
     // Listen to realtime service notifications
     const unsubNotifications = notificationService.subscribe((notification) => {
-      if (!isMountedRef.current) return;
-      console.log('🔔 New notification:', notification);
-      setNotifications(prev => [notification, ...prev]);
+      try {
+        if (!isMountedRef.current) return;
+        console.log('🔔 [DEBUG] New notification:', notification);
+        setNotifications(prev => [notification, ...prev]);
+      } catch (error) {
+        console.error('🔴 [DEBUG] Error in notification handler:', error);
+      }
     });
 
     // FIREBASE REAL-TIME LISTENERS (Automatic cross-device sync!)
-    console.log('🔥 Subscribing to Firebase attendance updates...');
+    console.log('🔥 [DEBUG] Subscribing to Firebase attendance updates...');
     const unsubFirebaseAttendance = firebaseAttendanceService.subscribeToAttendance((attendanceData) => {
-      if (!isMountedRef.current) return;
-      console.log('🔥 Firebase real-time: Attendance updated!', attendanceData.length, 'records');
-      setAttendance(attendanceData);
-      localStorage.setItem('ls_attendance', JSON.stringify(attendanceData));
+      try {
+        if (!isMountedRef.current) return;
+        console.log('🔥 [DEBUG] Firebase real-time: Attendance updated!', attendanceData.length, 'records');
+        setAttendance(attendanceData);
+        localStorage.setItem('ls_attendance', JSON.stringify(attendanceData));
+      } catch (error) {
+        console.error('🔴 [DEBUG] Error in attendance handler:', error);
+      }
     });
 
-    console.log('🔥 Subscribing to Firebase leave requests...');
+    console.log('🔥 [DEBUG] Subscribing to Firebase leave requests...');
     const unsubFirebaseLeaves = firebaseLeaveService.subscribeToAllLeaves((leavesData) => {
-      if (!isMountedRef.current) return;
-      console.log('🔥 Firebase real-time: Leave requests updated!', leavesData.length, 'requests');
-      setLeaveRequests(leavesData);
-      localStorage.setItem('ls_leave_requests', JSON.stringify(leavesData));
+      try {
+        if (!isMountedRef.current) return;
+        console.log('🔥 [DEBUG] Firebase real-time: Leave requests updated!', leavesData.length, 'requests');
+        setLeaveRequests(leavesData);
+        localStorage.setItem('ls_leave_requests', JSON.stringify(leavesData));
+      } catch (error) {
+        console.error('🔴 [DEBUG] Error in leaves handler:', error);
+      }
     });
 
     // Subscribe to System Settings
     const unsubSettings = firebaseSettingsService.subscribeToSettings((settings) => {
-      if (!isMountedRef.current) return;
-      setSystemSettings(settings);
+      try {
+        if (!isMountedRef.current) return;
+        console.log('🔥 [DEBUG] System settings updated');
+        setSystemSettings(settings);
+      } catch (error) {
+        console.error('🔴 [DEBUG] Error in settings handler:', error);
+      }
     });
 
-    console.log('🔥 Subscribing to Firebase employee updates...');
+    console.log('🔥 [DEBUG] Subscribing to Firebase employee updates...');
     const unsubFirebaseEmployees = firebaseEmployeeService.subscribeToEmployees(async (employeesData) => {
-      if (!isMountedRef.current) return;
-      console.log('🔥 Firebase real-time: Employees updated!', employeesData.length);
-
-      // AUTO-INITIALIZE: If database is empty, populate it
-      if (employeesData.length === 0 && !localStorage.getItem('firebase_initialized')) {
-        console.log('⚠️ Firebase database is empty! Initializing with default employees...');
+      try {
         if (!isMountedRef.current) return;
-        await firebaseEmployeeService.initializeEmployees(INITIAL_EMPLOYEES);
+        console.log('🔥 [DEBUG] Firebase real-time: Employees updated!', employeesData.length);
+
+        // AUTO-INITIALIZE: If database is empty, populate it
+        if (employeesData.length === 0 && !localStorage.getItem('firebase_initialized')) {
+          console.log('⚠️ [DEBUG] Firebase database is empty! Initializing with default employees...');
+          if (!isMountedRef.current) return;
+          await firebaseEmployeeService.initializeEmployees(INITIAL_EMPLOYEES);
+          if (!isMountedRef.current) return;
+          localStorage.setItem('firebase_initialized', 'true');
+          return;
+        }
+
         if (!isMountedRef.current) return;
-        localStorage.setItem('firebase_initialized', 'true');
-        return;
-      }
-
-      if (!isMountedRef.current) return;
-      setEmployees(employeesData);
-      localStorage.setItem('ls_employees', JSON.stringify(employeesData));
+        setEmployees(employeesData);
+        localStorage.setItem('ls_employees', JSON.stringify(employeesData));
 
 
 
-      // Update current user if data changed - use userId instead of currentUser
-      const updatedUser = employeesData.find(e => e.id === userId);
-      if (updatedUser && isMountedRef.current) {
-        setCurrentUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        // Update current user if data changed - use userId instead of currentUser
+        const updatedUser = employeesData.find(e => e.id === userId);
+        if (updatedUser && isMountedRef.current) {
+          // Only update if data actually changed to prevent infinite loop
+          const currentUserStr = localStorage.getItem('user');
+          const updatedUserStr = JSON.stringify(updatedUser);
+          if (currentUserStr !== updatedUserStr) {
+            console.log('🔥 [DEBUG] Updating current user data');
+            setCurrentUser(updatedUser);
+            localStorage.setItem('user', updatedUserStr);
+          }
+        }
+      } catch (error) {
+        console.error('🔴 [DEBUG] Error in employees handler:', error);
       }
     });
 
     // Cleanup
     return () => {
       isMountedRef.current = false; // Set to false FIRST
-      console.log('🧹 Cleaning up Firebase listeners...');
+      console.log('🧹 [DEBUG] Cleaning up Firebase listeners for user:', userId);
 
       // Unsubscribe in try-catch to handle any errors
       try {
@@ -207,10 +249,10 @@ const App: React.FC = () => {
         unsubFirebaseEmployees();
         unsubSettings();
       } catch (error) {
-        console.error('Error during cleanup:', error);
+        console.error('🔴 [DEBUG] Error during cleanup:', error);
       }
     };
-  }, [currentUser]);
+  }, [currentUser?.id]); // Only depend on user ID, not entire currentUser object
 
   const handleLogin = (role: UserRole, email: string) => {
     // First, ensure employees are loaded from INITIAL_EMPLOYEES if not in state
@@ -514,6 +556,9 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
+      {/* Birthday Popup - Shows automatically when someone has birthday */}
+      <BirthdayPopup employees={employees} />
+
       <Sidebar role={currentUser.role} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
 
       <main className="flex-1 overflow-y-auto">
