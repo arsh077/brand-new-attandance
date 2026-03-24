@@ -1,13 +1,15 @@
-// Firebase Sales Service - Real-time sales tracking
+// Firebase Sales Service - Real-time sales tracking (multiple entries per day)
 import { db } from './firebaseConfig';
 import {
     collection,
-    setDoc,
+    addDoc,
+    updateDoc,
     deleteDoc,
     doc,
     onSnapshot,
     query,
-    where
+    where,
+    Timestamp
 } from 'firebase/firestore';
 import { SalesEntry } from '../types';
 
@@ -15,66 +17,47 @@ class FirebaseSalesService {
     private salesCollection = collection(db, 'sales');
 
     /**
-     * Upsert a sales entry (create or update)
-     * Doc ID = employeeId-date to prevent duplicates per employee per day
+     * Add a new sales entry (supports multiple per employee per day)
      */
-    async upsertSalesEntry(entry: Omit<SalesEntry, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) {
+    async addSalesEntry(entry: Omit<SalesEntry, 'id' | 'createdAt' | 'updatedAt'>) {
         try {
-            const docId = `${entry.employeeId}-${entry.date}`;
             const now = new Date().toISOString();
-
-            const data: SalesEntry = {
-                id: docId,
-                employeeId: entry.employeeId,
-                employeeName: entry.employeeName,
-                date: entry.date,
-                clientName: entry.clientName,
-                amount: entry.amount,
-                notes: entry.notes,
+            const data = {
+                ...entry,
                 createdAt: now,
-                updatedAt: now
+                updatedAt: now,
+                timestamp: Timestamp.now()
             };
-
-            await setDoc(doc(db, 'sales', docId), data, { merge: true });
-            // Update updatedAt separately so createdAt is preserved on update
-            await setDoc(doc(db, 'sales', docId), { updatedAt: now }, { merge: true });
-
-            console.log('🔥 Firebase Sales: Entry saved:', docId);
-            return { success: true, id: docId };
+            const docRef = await addDoc(this.salesCollection, data);
+            console.log('🔥 Firebase Sales: Entry added:', docRef.id);
+            return { success: true, id: docRef.id };
         } catch (error) {
-            console.error('❌ Firebase Sales upsert error:', error);
+            console.error('❌ Firebase Sales add error:', error);
             return { success: false, error };
         }
     }
 
     /**
-     * Subscribe to all sales for a given month (real-time)
-     * @param yearMonth - format: "2026-03"
+     * Update an existing sales entry
      */
-    subscribeToMonthlySales(yearMonth: string, callback: (entries: SalesEntry[]) => void) {
-        // Filter by date starting with yearMonth prefix
-        const startDate = `${yearMonth}-01`;
-        const endDate = `${yearMonth}-31`;
-
-        const q = query(
-            this.salesCollection,
-            where('date', '>=', startDate),
-            where('date', '<=', endDate)
-        );
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const entries = snapshot.docs.map(doc => doc.data() as SalesEntry);
-            console.log('🔥 Firebase Sales real-time update:', entries.length, 'entries for', yearMonth);
-            callback(entries);
-        }, (error) => {
-            console.error('❌ Firebase Sales subscription error:', error);
-        });
-
-        return unsubscribe;
+    async updateSalesEntry(entryId: string, updates: Partial<Pick<SalesEntry, 'clientName' | 'amount' | 'notes'>>) {
+        try {
+            const now = new Date().toISOString();
+            await updateDoc(doc(db, 'sales', entryId), {
+                ...updates,
+                updatedAt: now,
+                timestamp: Timestamp.now()
+            });
+            console.log('🔥 Firebase Sales: Entry updated:', entryId);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Firebase Sales update error:', error);
+            return { success: false, error };
+        }
     }
 
     /**
-     * Delete a sales entry (admin only)
+     * Delete a sales entry
      */
     async deleteSalesEntry(entryId: string) {
         try {
@@ -85,6 +68,31 @@ class FirebaseSalesService {
             console.error('❌ Firebase Sales delete error:', error);
             return { success: false, error };
         }
+    }
+
+    /**
+     * Subscribe to all sales for a given month (real-time)
+     * @param yearMonth - format: "2026-03"
+     */
+    subscribeToMonthlySales(yearMonth: string, callback: (entries: SalesEntry[]) => void) {
+        const startDate = `${yearMonth}-01`;
+        const endDate = `${yearMonth}-31`;
+
+        const q = query(
+            this.salesCollection,
+            where('date', '>=', startDate),
+            where('date', '<=', endDate)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const entries = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as SalesEntry));
+            console.log('🔥 Firebase Sales real-time update:', entries.length, 'entries for', yearMonth);
+            callback(entries);
+        }, (error) => {
+            console.error('❌ Firebase Sales subscription error:', error);
+        });
+
+        return unsubscribe;
     }
 }
 
