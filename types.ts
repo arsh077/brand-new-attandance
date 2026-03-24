@@ -60,3 +60,15 @@ export interface LeaveRequest {
   status: LeaveStatus;
   appliedDate: string;
 }
+
+export interface SalesEntry {
+  id: string;          // Firestore doc ID = employeeId-YYYY-MM-DD
+  employeeId: string;
+  employeeName: string;
+  date: string;        // YYYY-MM-DD
+  clientName: string;
+  amount: number;      // ₹
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}

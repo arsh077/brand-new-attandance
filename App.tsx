@@ -17,6 +17,7 @@ import Reports from './pages/Reports';
 import AnalyticsDashboard from './components/Analytics/AnalyticsDashboard';
 import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
+import Sales from './pages/Sales';
 import NotificationBell from './components/NotificationBell';
 import BirthdayPopup from './components/BirthdayPopup';
 
@@ -493,6 +494,11 @@ const App: React.FC = () => {
         return <Reports
           employees={employees}
           attendance={attendance}
+        />;
+      case 'sales':
+        return <Sales
+          currentUser={currentUser}
+          employees={employees}
         />;
       case 'employees':
         return <Employees

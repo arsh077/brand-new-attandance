@@ -16,6 +16,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
     { id: 'attendance', label: 'My Attendance', icon: ICONS.Attendance, roles: [UserRole.EMPLOYEE, UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'leaves', label: 'Leave Requests', icon: ICONS.Leaves, roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE] },
     { id: 'analytics', label: 'Analytics', icon: ICONS.Reports, roles: [UserRole.ADMIN, UserRole.MANAGER] },
+    { id: 'sales', label: 'Sales', icon: ICONS.Sales, roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE] },
     { id: 'reports', label: 'Monthly Reports', icon: ICONS.Reports, roles: [UserRole.ADMIN] },
     { id: 'employees', label: 'Employee Mgmt', icon: ICONS.Users, roles: [UserRole.ADMIN] },
     { id: 'admin', label: 'Admin Panel', icon: ICONS.Settings, roles: [UserRole.ADMIN] },
@@ -54,8 +55,8 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
             key={item.id}
             onClick={() => setActiveTab(item.id)}
             className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${activeTab === item.id
-                ? 'bg-indigo-50 text-indigo-700'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              ? 'bg-indigo-50 text-indigo-700'
+              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
           >
             <span className={`${activeTab === item.id ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'} mr-3`}>
