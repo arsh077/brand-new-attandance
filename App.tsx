@@ -20,6 +20,7 @@ import Login from './pages/Login';
 import Sales from './pages/Sales';
 import NotificationBell from './components/NotificationBell';
 import BirthdayPopup from './components/BirthdayPopup';
+import FestivalPopup from './components/FestivalPopup';
 
 const App: React.FC = () => {
   console.log('🚀 [DEBUG] App component mounting/rendering...');
@@ -562,7 +563,8 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
-      {/* Birthday Popup - Shows automatically when someone has birthday */}
+      {/* Popups - Shows automatically when someone has birthday or it's a festival */}
+      <FestivalPopup />
       <BirthdayPopup employees={employees} />
 
       <Sidebar role={currentUser.role} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
