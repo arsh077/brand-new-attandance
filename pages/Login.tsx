@@ -5,7 +5,7 @@ import { firebaseAuthService } from '../services/firebaseAuthService';
 import { firebaseEmployeeService } from '../services/firebaseEmployeeService';
 
 interface LoginProps {
-  onLogin: (role: UserRole, email: string) => void;
+  onLogin: (role: UserRole, email: string, employee?: any) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
@@ -49,7 +49,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         }
 
         // Success! Proceed
-        onLogin(localUser.role, localUser.email);
+        onLogin(localUser.role, localUser.email, localUser);
         return;
       }
 
@@ -70,7 +70,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         throw new Error(`Your account is registered as ${employee.role}, not ${selectedRole}.`);
       }
 
-      onLogin(employee.role, employee.email);
+      onLogin(employee.role, employee.email, employee);
 
     } catch (err: any) {
       console.error('Login failed:', err);

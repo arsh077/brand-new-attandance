@@ -257,7 +257,19 @@ const App: React.FC = () => {
     };
   }, [currentUser?.id]); // Only depend on user ID, not entire currentUser object
 
-  const handleLogin = (role: UserRole, email: string) => {
+  const handleLogin = (role: UserRole, email: string, employeeDb?: Employee) => {
+    if (employeeDb) {
+      // Add employee to the employees state if not present (to update the cache)
+      setEmployees(prev => {
+        if (!prev.find(e => e.id === employeeDb.id)) {
+          return [...prev, employeeDb];
+        }
+        return prev;
+      });
+      completeLogin(employeeDb, role, email);
+      return;
+    }
+
     // First, ensure employees are loaded from INITIAL_EMPLOYEES if not in state
     const currentEmployees = employees.length > 0 ? employees : INITIAL_EMPLOYEES;
 
