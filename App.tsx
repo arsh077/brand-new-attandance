@@ -454,6 +454,14 @@ const App: React.FC = () => {
     console.log('✅ Employee update synced to Firebase');
   };
 
+  // Initialize Advanced Notification Listeners
+  useEffect(() => {
+    if (currentUser) {
+      notificationService.initialize(currentUser.id, currentUser.role);
+    }
+    return () => notificationService.cleanup();
+  }, [currentUser]);
+
   if (!currentUser) {
     return <Login onLogin={handleLogin} />;
   }
@@ -566,15 +574,6 @@ const App: React.FC = () => {
         return <div className="p-8 text-gray-400 font-bold italic">Module coming soon...</div>;
     }
   };
-  // Initialize Advanced Notification Listeners
-  useEffect(() => {
-    if (currentUser) {
-      notificationService.initialize(currentUser.id, currentUser.role);
-    }
-    return () => notificationService.cleanup();
-  }, [currentUser]);
-
-
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
