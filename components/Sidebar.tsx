@@ -21,7 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
     { id: 'employees', label: 'Employee Mgmt', icon: ICONS.Users, roles: [UserRole.ADMIN] },
     { id: 'admin', label: 'Admin Panel', icon: ICONS.Settings, roles: [UserRole.ADMIN] },
     { id: 'team', label: 'My Team', icon: ICONS.Users, roles: [UserRole.MANAGER] },
-    { id: 'settings', label: 'Settings', icon: ICONS.Settings, roles: [UserRole.ADMIN] },
+    { id: 'settings', label: 'Settings', icon: ICONS.Settings, roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE] },
   ];
 
   const filteredItems = menuItems.filter(item => item.roles.includes(role));

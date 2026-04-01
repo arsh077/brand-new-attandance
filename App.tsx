@@ -18,6 +18,7 @@ import AnalyticsDashboard from './components/Analytics/AnalyticsDashboard';
 import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
 import Sales from './pages/Sales';
+import Settings from './pages/Settings';
 import NotificationBell from './components/NotificationBell';
 import BirthdayPopup from './components/BirthdayPopup';
 import FestivalPopup from './components/FestivalPopup';
@@ -547,6 +548,8 @@ const App: React.FC = () => {
             await firebaseSettingsService.updateSettings(settings);
           }}
         />;
+      case 'settings':
+        return <Settings currentUser={currentUser} />;
       default:
         return <div className="p-8 text-gray-400 font-bold italic">Module coming soon...</div>;
     }

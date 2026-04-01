@@ -58,8 +58,10 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onAdd, onUpdate, onDel
       dateOfBirth: fd.get('dateOfBirth') as string || undefined,
       leaveBalance: { [LeaveType.CASUAL]: 10, [LeaveType.SICK]: 10, [LeaveType.EARNED]: 10, [LeaveType.LOP]: 0 }
     };
-    // Pass the generated password so we can create the user account in Firebase
-    onAdd(newEmp, generatedPassword);
+    
+    const customPassword = fd.get('customPassword') as string;
+    // Pass the custom password so we can create the user account in Firebase
+    onAdd(newEmp, customPassword);
 
     setIsAdding(false);
     setGeneratedPassword('');
@@ -206,8 +208,23 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onAdd, onUpdate, onDel
                 <input name="email" type="email" placeholder="Email Address" required className="w-full bg-slate-50 border-0 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
                 <input name="phone" placeholder="Contact Number" required className="w-full bg-slate-50 border-0 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
               </div>
-              <div>
+              <div className="grid grid-cols-2 gap-4">
                 <input name="dateOfBirth" type="date" placeholder="Date of Birth" className="w-full bg-slate-50 border-0 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
+                <div className="relative">
+                  <input name="customPassword" type={showPassword ? "text" : "password"} placeholder="Set Portal Password" required minLength={6} className="w-full bg-slate-50 border-0 rounded-2xl px-6 py-4 text-sm font-bold outline-none pr-12" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {showPassword ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      ) : (
+                        <>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </>
+                      )}
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <input name="department" placeholder="Department" required className="w-full bg-slate-50 border-0 rounded-2xl px-6 py-4 text-sm font-bold outline-none" />
@@ -307,58 +324,12 @@ const Employees: React.FC<EmployeesProps> = ({ employees, onAdd, onUpdate, onDel
               </div>
 
               {/* Password Management */}
-              <div className="bg-purple-50/50 rounded-3xl p-6 space-y-4">
-                <h4 className="text-xs font-black text-purple-900 uppercase tracking-widest mb-4">🔐 Password Management</h4>
-
-                <div className="flex items-center space-x-4">
-                  <button
-                    type="button"
-                    onClick={handleGeneratePassword}
-                    className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 rounded-2xl font-black hover:from-purple-700 hover:to-indigo-700 transition-all flex items-center justify-center shadow-lg text-xs uppercase tracking-widest"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                    Generate Secure Password
-                  </button>
-                </div>
-
-                {generatedPassword && (
-                  <div className="bg-white border-2 border-purple-200 rounded-2xl p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Generated Password</p>
-                        <p className="text-lg font-mono font-black text-purple-900 tracking-wider">
-                          {showPassword ? generatedPassword : '••••••••••••'}
-                        </p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="p-3 bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-200 transition-all"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            {showPassword ? (
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                            ) : (
-                              <>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </>
-                            )}
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCopyPassword}
-                          className="p-3 bg-purple-100 text-purple-600 rounded-xl hover:bg-purple-200 transition-all"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-[9px] text-purple-600 font-bold mt-2">⚠️ Save this password securely! Employee will need it to login.</p>
-                  </div>
-                )}
+              <div className="bg-purple-50/50 rounded-3xl p-6 space-y-2">
+                <h4 className="text-xs font-black text-purple-900 uppercase tracking-widest mb-2">🔐 Password Management</h4>
+                <p className="text-xs text-purple-700 font-bold bg-white p-4 rounded-xl shadow-sm border border-purple-100">
+                  <span className="text-lg mr-2 leading-none">ℹ️</span>
+                  For enterprise security, existing employee passwords cannot be updated manually by an Admin here. Employees must log in and change their password via the Portal Settings.
+                </p>
               </div>
 
               {/* 2FA / OTP Verification */}

@@ -5,6 +5,7 @@ import {
     createUserWithEmailAndPassword,
     signOut,
     onAuthStateChanged,
+    updatePassword,
     User
 } from 'firebase/auth';
 
@@ -108,6 +109,26 @@ class FirebaseAuthService {
                     await deleteApp(secondaryApp);
                 } catch (e) { /* ignore cleanup error */ }
             }
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Change password for the current authenticated user
+     */
+    async changePassword(newPassword: string) {
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                return { success: false, error: "No user is currently signed in." };
+            }
+
+            await updatePassword(user, newPassword);
+            console.log('✅ Firebase: Password updated successfully for', user.email);
+            return { success: true };
+        } catch (error: any) {
+            console.error('❌ Firebase password update error:', error.message);
+            // Firebase may throw 'auth/requires-recent-login' if the session is too old
             return { success: false, error: error.message };
         }
     }
