@@ -16,7 +16,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
     { id: 'attendance', label: 'My Attendance', icon: ICONS.Attendance, roles: [UserRole.EMPLOYEE, UserRole.MANAGER, UserRole.ADMIN] },
     { id: 'leaves', label: 'Leave Requests', icon: ICONS.Leaves, roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE] },
     { id: 'analytics', label: 'Analytics', icon: ICONS.Reports, roles: [UserRole.ADMIN, UserRole.MANAGER] },
-    { id: 'sales', label: 'Sales', icon: ICONS.Sales, roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE] },
+    { id: 'sales', label: 'Sales', icon: ICONS.Sales, roles: [UserRole.ADMIN, UserRole.EMPLOYEE] },
     { id: 'reports', label: 'Monthly Reports', icon: ICONS.Reports, roles: [UserRole.ADMIN] },
     { id: 'employees', label: 'Employee Mgmt', icon: ICONS.Users, roles: [UserRole.ADMIN] },
     { id: 'admin', label: 'Admin Panel', icon: ICONS.Settings, roles: [UserRole.ADMIN] },

@@ -17,7 +17,7 @@ interface EntryForm {
 const BLANK_FORM: EntryForm = { clientName: '', amount: '', notes: '' };
 
 const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
-    const isAdmin = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER;
+    const isAdmin = currentUser.role === UserRole.ADMIN;
 
     // Current month state
     const today = new Date();
