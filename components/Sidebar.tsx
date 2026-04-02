@@ -27,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
   const filteredItems = menuItems.filter(item => item.roles.includes(role));
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-gray-200 w-64 shadow-sm transition-all duration-300">
+    <div className="flex flex-col h-full bg-white border-r border-gray-100 w-64 transition-all duration-300">
       <div className="p-6 flex items-center space-x-3">
         <div className="w-12 h-12 rounded-full bg-white border-2 border-gray-100 flex items-center justify-center overflow-hidden shadow-sm">
           <img
@@ -55,11 +55,11 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, setActiveTab, onLogo
             key={item.id}
             onClick={() => setActiveTab(item.id)}
             className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group ${activeTab === item.id
-              ? 'bg-indigo-50 text-indigo-700'
+              ? 'bg-gray-100 text-gray-900'
               : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
           >
-            <span className={`${activeTab === item.id ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'} mr-3`}>
+            <span className={`${activeTab === item.id ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-500'} mr-3`}>
               {item.icon}
             </span>
             {item.label}

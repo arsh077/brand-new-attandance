@@ -576,7 +576,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
+    <div className="flex h-screen bg-white overflow-hidden font-sans">
       {/* Popups - Shows automatically when someone has birthday or it's a festival */}
       <FestivalPopup />
       <BirthdayPopup employees={employees} />

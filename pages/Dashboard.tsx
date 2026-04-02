@@ -130,7 +130,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
   }));
 
   return (
-    <div className="animate-fade-in space-y-10">
+    <div className="animate-fade-in space-y-10 bg-white">
       {/* Birthday Popup - Shows for all users */}
       <BirthdayPopup employees={employees} />
 
@@ -155,9 +155,9 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
           />
 
           {/* Monthly Payroll Report */}
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden animate-slide-up">
-            <div className="p-6 border-b border-gray-100 bg-indigo-50/30">
-              <h3 className="text-sm font-black text-indigo-900 uppercase tracking-widest">End of Month Payroll Report</h3>
+          <div className="bg-white rounded-3xl border border-gray-200 shadow-lg overflow-hidden animate-slide-up">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">End of Month Payroll Report</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
@@ -176,7 +176,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                       <td className="px-6 py-4 text-center text-sm font-black text-emerald-600">{rep.daysPresent}</td>
                       <td className="px-6 py-4 text-center text-sm font-black text-purple-600">{rep.leavesTaken}</td>
                       <td className="px-6 py-4 text-right">
-                        <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">Payroll Ready</span>
+                        <span className="text-[10px] font-black uppercase text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">Payroll Ready</span>
                       </td>
                     </tr>
                   ))}
@@ -190,7 +190,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
       {!isAdmin && (
         <>
           {/* Simple Clock In/Out Toggle for Employees */}
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-8 animate-slide-up">
+          <div className="bg-white rounded-3xl border border-gray-200 shadow-lg p-8 animate-slide-up">
             <div className="space-y-6">
               {/* Header */}
               <div className="text-center">
@@ -258,15 +258,15 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
           </div>
 
           {/* Announcement Card */}
-          <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-8 text-white shadow-2xl animate-slide-up">
+          <div className="bg-white rounded-3xl p-8 text-gray-900 shadow-lg border border-gray-200 animate-slide-up">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-indigo-100 font-bold uppercase text-xs tracking-widest mb-2">Announcement</p>
+                <p className="text-gray-400 font-bold uppercase text-xs tracking-widest mb-2">Announcement</p>
                 <h4 className="text-2xl font-black mb-4">Happy New Year 2026!</h4>
-                <p className="text-indigo-50/70 max-w-md">Please ensure all leave regularization for December 2025 is completed by Friday.</p>
+                <p className="text-gray-500 max-w-md">Please ensure all leave regularization for December 2025 is completed by Friday.</p>
               </div>
-              <div className="bg-white/20 p-4 rounded-2xl">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
               </div>
             </div>
           </div>
