@@ -1,7 +1,6 @@
 // Enhanced Firebase Service with iOS-specific optimizations
-import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue, off, push, set, update, serverTimestamp, goOnline, goOffline } from 'firebase/database';
-import { firebaseConfig } from './firebaseConfig';
+import { app as firebaseApp } from './firebaseConfig';
 
 class EnhancedFirebaseService {
   private app: any;
@@ -14,14 +13,13 @@ class EnhancedFirebaseService {
 
   constructor() {
     this.initializeFirebase();
-    this.setupConnectionMonitoring();
     this.setupVisibilityHandling();
     this.setupNetworkHandling();
   }
 
   private initializeFirebase() {
     try {
-      this.app = initializeApp(firebaseConfig);
+      this.app = firebaseApp;
       this.database = getDatabase(this.app);
       
       // Enable offline persistence (crucial for iOS)
