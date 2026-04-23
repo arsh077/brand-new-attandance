@@ -7,7 +7,8 @@ export const AUTHORIZED_USERS = [
   { email: 'Info@legalsuccessindia.com', password: 'Legal@000', role: UserRole.ADMIN, name: 'Admin - Info' },
   { email: 'lsikabir27@gmail.com', password: 'Legal@001', role: UserRole.EMPLOYEE, name: 'Kabir' },
   { email: 'legalsuccessindia94@gmail.com', password: 'Legal@002', role: UserRole.EMPLOYEE, name: 'Sharfaraz' },
-  { email: 'lsinikhat@gmail.com', password: 'Legal@005', role: UserRole.EMPLOYEE, name: 'Nikhat' }
+  { email: 'lsinikhat@gmail.com', password: 'Legal@005', role: UserRole.EMPLOYEE, name: 'Nikhat' },
+  { email: 'sonia@legalsuccessindia.com', password: 'Legal@011', role: UserRole.EMPLOYEE, name: 'Sonia' }
 ];
 
 export const INITIAL_EMPLOYEES: Employee[] = [
@@ -61,6 +62,19 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: UserRole.EMPLOYEE,
     status: 'ACTIVE',
     dateJoined: '2024-06-15',
+    leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
+  },
+  {
+    id: 'EMPSONIA',
+    name: 'Sonia',
+    email: 'sonia@legalsuccessindia.com',
+    phone: '+91 0000000000',
+    designation: 'Legal Executive',
+    department: 'Legal',
+    salary: 50000,
+    role: UserRole.EMPLOYEE,
+    status: 'ACTIVE',
+    dateJoined: '2026-04-23',
     leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
   }
 ];
