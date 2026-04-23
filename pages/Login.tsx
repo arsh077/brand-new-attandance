@@ -43,13 +43,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         console.log('🔥 Syncing Firebase Auth...');
         const authResult = await firebaseAuthService.login(email.trim(), password.trim());
 
-        if (!authResult.success && authResult.error?.includes('auth/user-not-found')) {
-          console.log('🔥 Firebase: User not found, performing auto-registration...');
+        if (!authResult.success && (authResult.error?.includes('auth/invalid-credential') || authResult.error?.includes('auth/user-not-found'))) {
+          console.log('🔥 Firebase: User not found or invalid credential, ensuring registration...');
           await firebaseAuthService.register(email.trim(), password.trim());
         }
 
+        // Fetch full employee object to ensure we have the 'id'
+        const dbEmployee = await firebaseEmployeeService.getEmployeeByEmail(email.trim());
+
         // Success! Proceed
-        onLogin(localUser.role, localUser.email, localUser);
+        onLogin(localUser.role, localUser.email, dbEmployee || undefined);
         return;
       }
 
