@@ -5,10 +5,8 @@ import { UserRole, Employee, LeaveType } from './types';
 // Secure user credentials - Only these emails can login with correct passwords
 export const AUTHORIZED_USERS = [
   { email: 'Info@legalsuccessindia.com', password: 'Legal@000', role: UserRole.ADMIN, name: 'Admin - Info' },
-  { email: 'vizralegalsuccess@gmail.com', password: 'Ahsan@110', role: UserRole.MANAGER, name: 'VIZRA AHSAN' },
   { email: 'lsikabir27@gmail.com', password: 'Legal@001', role: UserRole.EMPLOYEE, name: 'Kabir' },
   { email: 'legalsuccessindia94@gmail.com', password: 'Legal@002', role: UserRole.EMPLOYEE, name: 'Sharfaraz' },
-  { email: 'sahinlegalsuccess@gmail.com', password: 'Legal@003', role: UserRole.EMPLOYEE, name: 'Sahin' },
   { email: 'lsinikhat@gmail.com', password: 'Legal@005', role: UserRole.EMPLOYEE, name: 'Nikhat' }
 ];
 
@@ -24,19 +22,6 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: UserRole.ADMIN,
     status: 'ACTIVE',
     dateJoined: '2022-01-01',
-    leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
-  },
-  {
-    id: 'EMP002',
-    name: 'VIZRA AHSAN',
-    email: 'vizralegalsuccess@gmail.com',
-    phone: '+91 9876543211',
-    designation: 'Operations Manager',
-    department: 'Operations',
-    salary: 85000,
-    role: UserRole.MANAGER,
-    status: 'ACTIVE',
-    dateJoined: '2023-05-10',
     leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
   },
   {
@@ -63,19 +48,6 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     role: UserRole.EMPLOYEE,
     status: 'ACTIVE',
     dateJoined: '2024-02-15',
-    leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
-  },
-  {
-    id: 'EMP005',
-    name: 'Sahin',
-    email: 'sahinlegalsuccess@gmail.com',
-    phone: '+91 9876543214',
-    designation: 'Legal Executive',
-    department: 'Legal',
-    salary: 55000,
-    role: UserRole.EMPLOYEE,
-    status: 'ACTIVE',
-    dateJoined: '2024-03-20',
     leaveBalance: { [LeaveType.CASUAL]: 0, [LeaveType.SICK]: 0, [LeaveType.EARNED]: 0, [LeaveType.LOP]: 0 }
   },
   {
