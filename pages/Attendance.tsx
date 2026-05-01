@@ -90,15 +90,7 @@ const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onCloc
     });
   };
 
-  // Sort: aaj ki date hamesha sabse upar, baaki sab latest-first
-  const sortedHistory = [...myHistory].sort((a, b) => {
-    // Today's record gets highest priority (always on top)
-    const aIsToday = a.date === todayStr ? 1 : 0;
-    const bIsToday = b.date === todayStr ? 1 : 0;
-    if (aIsToday !== bIsToday) return bIsToday - aIsToday;
-    // Then sort by date descending (newest first)
-    return getRecordTimestamp(b) - getRecordTimestamp(a);
-  });
+  const sortedHistory = [...myHistory].sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
 
   return (
     <div className="animate-fade-in space-y-10">
