@@ -11,10 +11,10 @@ jobs:
     
     steps:
     - name: 🚚 Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: 📦 Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
@@ -23,19 +23,14 @@ jobs:
       run: npm ci
     
     - name: 🔨 Build project
-      env:
-        VITE_PUSHER_APP_KEY: ${{ secrets.VITE_PUSHER_APP_KEY }}
-        VITE_PUSHER_CLUSTER: ap2
-        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       run: npm run build
     
     - name: 📤 Deploy to Hostinger via FTP
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
+        server: 89.116.133.226
+        username: u136712005.attendance.legalsuccessindia.com
+        password: Legal@1997
         local-dir: ./dist/
-        server-dir: /public_html/attendance/
+        server-dir: /public_html/
         dangerous-clean-slate: true
