@@ -18,17 +18,17 @@ const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onCloc
     return () => clearInterval(t);
   }, []);
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const activeRecord = attendance.find(a => a.employeeId === currentUser.id && a.date === todayStr && !a.clockOut);
+  const myHistory = attendance.filter(a => a.employeeId === currentUser.id);
+
   // Scroll timeline to top whenever history changes (aaj ki date top pe rahe)
   useEffect(() => {
     if (timelineRef.current) {
       timelineRef.current.scrollTop = 0;
     }
   }, [myHistory.length]);
-
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const activeRecord = attendance.find(a => a.employeeId === currentUser.id && a.date === todayStr && !a.clockOut);
-  const myHistory = attendance.filter(a => a.employeeId === currentUser.id);
 
   const calendarYear = today.getFullYear();
   const calendarMonth = today.getMonth();
