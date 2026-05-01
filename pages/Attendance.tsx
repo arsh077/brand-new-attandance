@@ -11,11 +11,19 @@ interface AttendanceProps {
 
 const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onClockToggle }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const timelineRef = React.useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Scroll timeline to top whenever history changes (aaj ki date top pe rahe)
+  useEffect(() => {
+    if (timelineRef.current) {
+      timelineRef.current.scrollTop = 0;
+    }
+  }, [myHistory.length]);
 
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -82,7 +90,15 @@ const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onCloc
     });
   };
 
-  const sortedHistory = [...myHistory].sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+  // Sort: aaj ki date hamesha sabse upar, baaki sab latest-first
+  const sortedHistory = [...myHistory].sort((a, b) => {
+    // Today's record gets highest priority (always on top)
+    const aIsToday = a.date === todayStr ? 1 : 0;
+    const bIsToday = b.date === todayStr ? 1 : 0;
+    if (aIsToday !== bIsToday) return bIsToday - aIsToday;
+    // Then sort by date descending (newest first)
+    return getRecordTimestamp(b) - getRecordTimestamp(a);
+  });
 
   return (
     <div className="animate-fade-in space-y-10">
@@ -151,7 +167,7 @@ const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onCloc
           <div className="p-8 border-b border-gray-50">
             <h3 className="font-black text-gray-900 uppercase text-xs tracking-widest">Attendance Timeline</h3>
           </div>
-          <div className="flex-1 overflow-y-auto max-h-[400px] p-8 space-y-6">
+          <div ref={timelineRef} className="flex-1 overflow-y-auto max-h-[400px] p-8 space-y-6">
             {sortedHistory.length > 0 ? sortedHistory.map((log) => (
               <div key={log.id} className="flex items-start space-x-6 relative group">
                 <div className="absolute left-[7px] top-4 w-px h-full bg-slate-100 group-last:hidden"></div>
