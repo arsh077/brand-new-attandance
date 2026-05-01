@@ -386,7 +386,7 @@ const App: React.FC = () => {
       } else {
         // Clock In
         console.log('🟢 Clocking in... (via Firebase)');
-        const now = new Date();
+
         const currentTimeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }); // HH:mm format for comparison
 
         // Parse thresholds from settings
