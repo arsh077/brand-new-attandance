@@ -48,6 +48,42 @@ const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onCloc
     }
   };
 
+  const getTimeInMinutes = (time?: string) => {
+    if (!time) return 0;
+    const [clock, meridiem] = time.split(' ');
+    if (!clock || !meridiem) return 0;
+
+    let [hours, minutes] = clock.split(':').map(Number);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return 0;
+
+    const period = meridiem.toUpperCase();
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+
+    return hours * 60 + minutes;
+  };
+
+  const getRecordTimestamp = (record: AttendanceRecord) => {
+    const [year, month, day] = record.date.split('-').map(Number);
+    return new Date(
+      year,
+      (month || 1) - 1,
+      day || 1,
+      0,
+      getTimeInMinutes(record.clockIn)
+    ).getTime();
+  };
+
+  const formatRecordDate = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, (month || 1) - 1, day || 1).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short'
+    });
+  };
+
+  const sortedHistory = [...myHistory].sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+
   return (
     <div className="animate-fade-in space-y-10">
       <div className="flex flex-col items-center">
@@ -116,13 +152,13 @@ const Attendance: React.FC<AttendanceProps> = ({ currentUser, attendance, onCloc
             <h3 className="font-black text-gray-900 uppercase text-xs tracking-widest">Attendance Timeline</h3>
           </div>
           <div className="flex-1 overflow-y-auto max-h-[400px] p-8 space-y-6">
-            {myHistory.length > 0 ? myHistory.map((log) => (
+            {sortedHistory.length > 0 ? sortedHistory.map((log) => (
               <div key={log.id} className="flex items-start space-x-6 relative group">
                 <div className="absolute left-[7px] top-4 w-px h-full bg-slate-100 group-last:hidden"></div>
                 <div className={`mt-1.5 w-4 h-4 rounded-full border-4 border-white shadow-md z-10 ${getStatusColor(log.status)}`}></div>
                 <div className="flex-1">
                   <div className="flex justify-between items-center mb-1">
-                    <p className="text-sm font-black text-gray-900">{new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+                    <p className="text-sm font-black text-gray-900">{formatRecordDate(log.date)}</p>
                     <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-lg ${
                       log.status === AttendanceStatus.PRESENT
                         ? 'bg-emerald-50 text-emerald-600'
