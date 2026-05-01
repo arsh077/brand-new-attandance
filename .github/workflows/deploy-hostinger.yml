@@ -28,9 +28,9 @@ jobs:
     - name: 📤 Deploy to Hostinger via FTP
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
-        server: 89.116.133.226
+        server: 89.116.133.225
         username: u136712005.attendance.legalsuccessindia.com
-        password: Legal@1997
+        password: Khurshid@Legal786
         local-dir: ./dist/
         server-dir: /public_html/
         dangerous-clean-slate: true
