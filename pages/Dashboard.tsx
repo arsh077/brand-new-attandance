@@ -63,13 +63,13 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
     }
 
     // Check minimum delay between clicks
-    const now = Date.now();
-    if (now - lastClickTime < minClickDelay) {
+    const currentTimeMs = Date.now();
+    if (currentTimeMs - lastClickTime < minClickDelay) {
       console.log('Too fast! Please wait...');
       return;
     }
 
-    setLastClickTime(now);
+    setLastClickTime(currentTimeMs);
     processToggle();
   };
 
