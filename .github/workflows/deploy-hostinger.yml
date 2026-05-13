@@ -1,9 +1,13 @@
-name: Deploy to Hostinger
+name: Deploy to Hostinger (DISABLED - Using Hostinger Auto-Deploy)
 
+# This workflow is DISABLED. Hostinger handles deployment automatically
+# via its built-in GitHub Deployments feature.
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DEPLOY to confirm manual deploy'
+        required: true
 
 jobs:
   deploy:
