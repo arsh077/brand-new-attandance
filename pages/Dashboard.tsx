@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserRole, Employee, AttendanceRecord, LeaveRequest, AttendanceStatus } from '../types';
 import DashboardStats from '../components/DashboardStats';
 import RealtimeAttendance from '../components/RealtimeAttendance';
 import BirthdayPopup from '../components/BirthdayPopup';
+import { MonthlyGoals } from '../services/firebaseTargetService';
+import { firebaseSalesService } from '../services/firebaseSalesService';
 
 interface DashboardProps {
   role: UserRole;
@@ -14,17 +16,40 @@ interface DashboardProps {
     lateThreshold: string;
     halfDayThreshold: string;
   };
+  monthlyGoals: MonthlyGoals;
   onClockToggle: (empId: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leaves, currentUser, systemSettings, onClockToggle }) => {
+const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leaves, currentUser, systemSettings, monthlyGoals, onClockToggle }) => {
   const isAdmin = role === UserRole.ADMIN;
   // Use local date to match firebaseAttendanceService
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const yearMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [lastClickTime, setLastClickTime] = React.useState(0);
   const minClickDelay = 1000; // Minimum 1 second between clicks
+
+  // Track current employee's monthly sales for progress vs target
+  const [currentMonthSales, setCurrentMonthSales] = useState(0);
+  useEffect(() => {
+    if (isAdmin) return;
+    const unsub = firebaseSalesService.subscribeToMonthlySales(yearMonthStr, (entries: any[]) => {
+      const myTotal = entries
+        .filter((e: any) => e.employeeId === currentUser.id)
+        .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+      setCurrentMonthSales(myTotal);
+    });
+    return () => unsub();
+  }, [currentUser.id, yearMonthStr, isAdmin]);
+
+  // Computed values for target display
+  const targetAmount = monthlyGoals?.targetAmount || 0;
+  const remaining = Math.max(0, targetAmount - currentMonthSales);
+  const progressPercent = targetAmount > 0 ? Math.min(100, Math.round((currentMonthSales / targetAmount) * 100)) : 0;
+  const monthName = monthlyGoals?.targetMonth
+    ? new Date(monthlyGoals.targetMonth + '-02').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+    : now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
   // Real-time attendance calculation (updates automatically from Firebase!)
   // CRITICAL: Only count TODAY's attendance, filter by exact date match
@@ -189,6 +214,76 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
 
       {!isAdmin && (
         <>
+          {/* ━━━ MONTHLY TARGET SECTION (Big Font) ━━━ */}
+          {targetAmount > 0 && (
+            <div className="space-y-4 animate-slide-up">
+              {/* Target Card — Giant font display */}
+              <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-3xl p-10 text-white shadow-2xl shadow-indigo-200 overflow-hidden">
+                {/* Background decoration */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+                <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
+                <div className="relative z-10">
+                  <p className="text-indigo-200 font-black uppercase tracking-[0.3em] text-[10px] mb-2">📊 Target for {monthName}</p>
+                  <div
+                    className="text-white font-black leading-none mb-3"
+                    style={{ fontSize: 'clamp(3.5rem, 8vw, 5.5rem)', textShadow: '0 4px 30px rgba(0,0,0,0.3)' }}
+                  >
+                    ₹{targetAmount.toLocaleString('en-IN')}
+                  </div>
+                  <p className="text-indigo-200 font-bold text-sm uppercase tracking-widest">Monthly Sales Target</p>
+                </div>
+              </div>
+
+              {/* Progress Cards Row */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Achievement */}
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-full blur-2xl" />
+                  <p className="text-gray-400 font-black uppercase tracking-widest text-[10px] mb-2">✅ Your Achievement</p>
+                  <p
+                    className="font-black text-emerald-600 leading-none"
+                    style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}
+                  >
+                    ₹{currentMonthSales.toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-gray-400 text-xs font-bold mt-1">This Month</p>
+                </div>
+
+                {/* Remaining */}
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6 relative overflow-hidden">
+                  <div className={`absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl ${remaining <= 0 ? 'bg-emerald-50' : 'bg-orange-50'}`} />
+                  <p className="text-gray-400 font-black uppercase tracking-widest text-[10px] mb-2">🎯 Remaining</p>
+                  <p
+                    className={`font-black leading-none ${remaining <= 0 ? 'text-emerald-600' : 'text-orange-600'}`}
+                    style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}
+                  >
+                    {remaining <= 0 ? '🏆 Done!' : `₹${remaining.toLocaleString('en-IN')}`}
+                  </p>
+                  <p className="text-gray-400 text-xs font-bold mt-1">{remaining <= 0 ? 'Target Achieved!' : 'To Go'}</p>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <p className="font-black text-gray-800 text-sm uppercase tracking-widest">Progress</p>
+                  <p className={`font-black text-3xl ${progressPercent >= 100 ? 'text-emerald-600' : 'text-indigo-600'}`}>{progressPercent}%</p>
+                </div>
+                {/* Track */}
+                <div className="w-full bg-gray-100 rounded-full h-5 overflow-hidden">
+                  <div
+                    className={`h-5 rounded-full transition-all duration-1000 ease-out ${progressPercent >= 100 ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-indigo-500 to-purple-600'}`}
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-2">
+                  <p className="text-[10px] font-bold text-gray-400">₹0</p>
+                  <p className="text-[10px] font-bold text-gray-400">₹{targetAmount.toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Simple Clock In/Out Toggle for Employees */}
           <div className="bg-white rounded-3xl border border-gray-200 shadow-lg p-8 animate-slide-up">
             <div className="space-y-6">

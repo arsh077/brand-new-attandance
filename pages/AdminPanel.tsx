@@ -3,6 +3,7 @@ import { UserRole, Employee } from '../types';
 import { AUTHORIZED_USERS } from '../constants';
 import { firebaseEmployeeService } from '../services/firebaseEmployeeService';
 import { firebaseAuthService } from '../services/firebaseAuthService';
+import { MonthlyGoals, DEFAULT_MONTHLY_GOALS } from '../services/firebaseTargetService';
 
 interface SystemSettings {
   companyName: string;
@@ -16,7 +17,9 @@ interface SystemSettings {
 interface AdminPanelProps {
   employees: Employee[];
   systemSettings?: SystemSettings;
+  monthlyGoals?: MonthlyGoals;
   onUpdateSettings: (settings: SystemSettings) => void;
+  onUpdateGoals?: (goals: MonthlyGoals) => Promise<void>;
 }
 
 interface NewUserCredentials {
@@ -26,7 +29,7 @@ interface NewUserCredentials {
   name: string;
 }
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: propSettings, onUpdateSettings }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: propSettings, monthlyGoals: propGoals, onUpdateSettings, onUpdateGoals }) => {
   const [activeSection, setActiveSection] = useState('users');
   const [newUser, setNewUser] = useState<NewUserCredentials>({
     email: '',
@@ -56,6 +59,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
       }
     }
   }, [propSettings]); // Don't include systemSettings in dependencies to avoid loop
+
+  // Monthly Goals editing state (synced from Firebase via props)
+  const [editGoals, setEditGoals] = useState<MonthlyGoals>(propGoals || DEFAULT_MONTHLY_GOALS);
+  const [savingGoals, setSavingGoals] = useState(false);
+
+  // Sync editGoals when Firebase pushes new goals
+  useEffect(() => {
+    if (propGoals) {
+      setEditGoals(propGoals);
+    }
+  }, [propGoals]);
+
+  const handleSaveGoals = async () => {
+    if (!onUpdateGoals) return;
+    setSavingGoals(true);
+    try {
+      await onUpdateGoals(editGoals);
+      alert('✅ Monthly goals saved! All employees will see the updated target live.');
+    } catch (error) {
+      alert('❌ Error saving goals: ' + error);
+    } finally {
+      setSavingGoals(false);
+    }
+  };
 
   const [authorizedUsers, setAuthorizedUsers] = useState(AUTHORIZED_USERS);
 
@@ -182,6 +209,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
       <div className="flex space-x-1 bg-gray-100 p-1 rounded-2xl">
         {[
           { id: 'users', label: 'User Management', icon: '👥' },
+          { id: 'monthly-goals', label: 'Monthly Goals', icon: '🎯' },
           { id: 'settings', label: 'System Settings', icon: '⚙️' },
           { id: 'security', label: 'Security', icon: '🔒' },
           { id: 'backup', label: 'Data Backup', icon: '💾' }
@@ -310,6 +338,121 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Monthly Goals Section */}
+      {activeSection === 'monthly-goals' && (
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-8">
+          <div className="mb-8">
+            <h3 className="text-xl font-black text-gray-900 mb-1">🎯 Monthly Goals</h3>
+            <p className="text-gray-400 font-medium">Set monthly sales target and recognize your star performer. Changes sync live to all employees.</p>
+          </div>
+
+          <div className="space-y-6">
+            {/* Month Selector */}
+            <div>
+              <label className="block text-sm font-black text-gray-700 mb-2 uppercase tracking-widest">Target Month</label>
+              <input
+                type="month"
+                value={editGoals.targetMonth}
+                onChange={(e) => setEditGoals({ ...editGoals, targetMonth: e.target.value })}
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
+
+            {/* Monthly Target Amount */}
+            <div>
+              <label className="block text-sm font-black text-gray-700 mb-2 uppercase tracking-widest">💰 Monthly Sales Target (₹)</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-black text-2xl">₹</span>
+                <input
+                  type="number"
+                  value={editGoals.targetAmount || ''}
+                  onChange={(e) => setEditGoals({ ...editGoals, targetAmount: Number(e.target.value) })}
+                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl pl-12 pr-4 py-4 font-black text-gray-900 text-3xl focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+              {(editGoals.targetAmount || 0) > 0 && (
+                <p className="text-indigo-600 font-black mt-2 text-lg">
+                  = ₹{(editGoals.targetAmount || 0).toLocaleString('en-IN')}
+                </p>
+              )}
+            </div>
+
+            {/* Employee of the Month */}
+            <div>
+              <label className="block text-sm font-black text-gray-700 mb-2 uppercase tracking-widest">🏆 Employee of the Month</label>
+              <select
+                value={editGoals.employeeOfMonth?.id || ''}
+                onChange={(e) => {
+                  const emp = employees.find(em => em.id === e.target.value);
+                  if (emp) {
+                    setEditGoals({
+                      ...editGoals,
+                      employeeOfMonth: {
+                        id: emp.id,
+                        name: emp.name,
+                        designation: emp.designation,
+                        department: emp.department
+                      }
+                    });
+                  } else {
+                    setEditGoals({ ...editGoals, employeeOfMonth: null });
+                  }
+                }}
+                className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+              >
+                <option value="">-- No Employee of the Month (clear) --</option>
+                {employees.filter(e => e.status === 'ACTIVE' || (e as any).status === undefined).map(emp => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.name} — {emp.designation}
+                  </option>
+                ))}
+              </select>
+
+              {editGoals.employeeOfMonth && (
+                <div className="mt-4 p-5 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl border border-amber-200">
+                  <div className="flex items-center space-x-4">
+                    <span className="text-4xl">🏆</span>
+                    <div>
+                      <p className="font-black text-amber-900 text-lg">{editGoals.employeeOfMonth.name}</p>
+                      <p className="text-amber-700 font-bold text-sm">{editGoals.employeeOfMonth.designation}</p>
+                      <p className="text-amber-500 font-bold text-xs uppercase tracking-widest">{editGoals.employeeOfMonth.department}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-amber-600 mt-3 font-bold">✨ A celebration popup will be shown to all employees on their next login!</p>
+                </div>
+              )}
+            </div>
+
+            {/* Save Button */}
+            <button
+              onClick={handleSaveGoals}
+              disabled={savingGoals}
+              className={`w-full py-5 rounded-2xl font-black text-white text-lg shadow-xl transition-all duration-200 uppercase tracking-widest ${
+                savingGoals
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:scale-[1.01] active:scale-[0.99] shadow-indigo-200'
+              }`}
+            >
+              {savingGoals ? '⏳ Saving to Firebase...' : '🎯 Save Monthly Goals (Live Sync)'}
+            </button>
+
+            {/* Preview */}
+            {(editGoals.targetAmount || 0) > 0 && (
+              <div className="p-5 bg-indigo-50 rounded-2xl border border-indigo-100">
+                <p className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-3">Preview — What Employees Will See</p>
+                <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-6 text-white">
+                  <p className="text-indigo-200 text-xs font-black uppercase tracking-widest mb-1">📊 Target for {editGoals.targetMonth ? new Date(editGoals.targetMonth + '-02').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : 'This Month'}</p>
+                  <p className="font-black text-5xl mb-1">₹{(editGoals.targetAmount || 0).toLocaleString('en-IN')}</p>
+                  <p className="text-indigo-200 text-sm font-bold uppercase tracking-widest">Monthly Sales Target</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

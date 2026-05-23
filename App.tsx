@@ -22,6 +22,8 @@ import Settings from './pages/Settings';
 import NotificationBell from './components/NotificationBell';
 import BirthdayPopup from './components/BirthdayPopup';
 import FestivalPopup from './components/FestivalPopup';
+import { firebaseTargetService, MonthlyGoals, DEFAULT_MONTHLY_GOALS } from './services/firebaseTargetService';
+import EmployeeOfMonthPopup from './components/EmployeeOfMonthPopup';
 
 const App: React.FC = () => {
   console.log('🚀 [DEBUG] App component mounting/rendering...');
@@ -53,6 +55,7 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
+  const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoals>(DEFAULT_MONTHLY_GOALS);
 
   useEffect(() => {
     employeesRef.current = employees;
@@ -200,6 +203,17 @@ const App: React.FC = () => {
       }
     });
 
+    // Subscribe to Monthly Goals (Employee of Month + Sales Target) — live sync
+    const unsubGoals = firebaseTargetService.subscribeToMonthlyGoals((goals) => {
+      try {
+        if (!isMountedRef.current) return;
+        console.log('🎯 [DEBUG] Monthly goals updated');
+        setMonthlyGoals(goals);
+      } catch (error) {
+        console.error('🔴 [DEBUG] Error in goals handler:', error);
+      }
+    });
+
     console.log('🔥 [DEBUG] Subscribing to Firebase employee updates...');
     const unsubFirebaseEmployees = firebaseEmployeeService.subscribeToEmployees(async (employeesData) => {
       try {
@@ -251,6 +265,7 @@ const App: React.FC = () => {
         unsubFirebaseLeaves();
         unsubFirebaseEmployees();
         unsubSettings();
+        unsubGoals();
       } catch (error) {
         console.error('🔴 [DEBUG] Error during cleanup:', error);
       }
@@ -476,6 +491,7 @@ const App: React.FC = () => {
           leaves={leaveRequests}
           currentUser={currentUser}
           systemSettings={systemSettings}
+          monthlyGoals={monthlyGoals}
           onClockToggle={onClockToggle}
         />;
       case 'attendance':
@@ -562,10 +578,15 @@ const App: React.FC = () => {
         return <AdminPanel
           employees={employees}
           systemSettings={systemSettings} // Pass real-time settings
+          monthlyGoals={monthlyGoals}
           onUpdateSettings={async (settings) => {
             console.log('System settings updated:', settings);
             // Apply settings to the system via Firebase
             await firebaseSettingsService.updateSettings(settings);
+          }}
+          onUpdateGoals={async (goals) => {
+            console.log('Monthly goals updated:', goals);
+            await firebaseTargetService.updateMonthlyGoals(goals);
           }}
         />;
       case 'settings':
@@ -580,6 +601,8 @@ const App: React.FC = () => {
       {/* Popups - Shows automatically when someone has birthday or it's a festival */}
       <FestivalPopup />
       <BirthdayPopup employees={employees} />
+      {/* Employee of the Month popup - live-synced, shows once per session per month */}
+      <EmployeeOfMonthPopup monthlyGoals={monthlyGoals} />
 
       <Sidebar role={currentUser.role} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
 
