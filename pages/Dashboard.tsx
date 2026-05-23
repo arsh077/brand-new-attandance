@@ -43,22 +43,25 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
     return () => unsub();
   }, [currentUser.id, yearMonthStr, isAdmin]);
 
-  // Track ALL employees' sales total (for admin view)
+  // Track ALL employees' sales total (for both admin and employee views)
   const [totalTeamSales, setTotalTeamSales] = useState(0);
   useEffect(() => {
-    if (!isAdmin) return;
     const unsub = firebaseSalesService.subscribeToMonthlySales(yearMonthStr, (entries: any[]) => {
       const total = entries.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
       setTotalTeamSales(total);
     });
     return () => unsub();
-  }, [isAdmin, yearMonthStr]);
+  }, [yearMonthStr]);
 
   // Computed values for target display
   const targetAmount = monthlyGoals?.targetAmount || 0;
-  const salesForProgress = isAdmin ? totalTeamSales : currentMonthSales;
+  const salesForProgress = totalTeamSales; // Main target card progress shows combined team sales!
   const remaining = Math.max(0, targetAmount - salesForProgress);
   const progressPercent = targetAmount > 0 ? Math.min(100, Math.round((salesForProgress / targetAmount) * 100)) : 0;
+
+  // Employee personal contribution calculations
+  const myContributionPercent = targetAmount > 0 ? Math.min(100, Math.round((currentMonthSales / targetAmount) * 100)) : 0;
+  const myShareOfTeam = totalTeamSales > 0 ? Math.min(100, Math.round((currentMonthSales / totalTeamSales) * 100)) : 0;
   const monthName = monthlyGoals?.targetMonth
     ? new Date(monthlyGoals.targetMonth + '-02').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
     : now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
@@ -352,39 +355,61 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                 </div>
               </div>
 
-              {/* Progress Cards Row */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Achievement */}
-                <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-full blur-2xl" />
-                  <p className="text-gray-400 font-black uppercase tracking-widest text-[10px] mb-2">✅ Your Achievement</p>
-                  <p
-                    className="font-black text-emerald-600 leading-none"
-                    style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}
-                  >
+              {/* Contribution & Achievement Grid Row (4 Cards) */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Your Contribution Card (Emerald Theme) */}
+                <div className="bg-white rounded-3xl border border-emerald-100 shadow-lg p-6 relative overflow-hidden transition-all duration-200 hover:shadow-xl hover:scale-[1.01]">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-50 rounded-full blur-2xl" />
+                  <p className="text-emerald-600 font-black uppercase tracking-widest text-[9px] mb-2">📈 Your Sales</p>
+                  <p className="font-black text-emerald-600 leading-none text-2xl">
                     ₹{currentMonthSales.toLocaleString('en-IN')}
                   </p>
-                  <p className="text-gray-400 text-xs font-bold mt-1">This Month</p>
+                  <p className="text-gray-400 text-[10px] font-bold mt-2">
+                    {myContributionPercent}% of main target
+                  </p>
                 </div>
 
-                {/* Remaining */}
-                <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6 relative overflow-hidden">
-                  <div className={`absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl ${remaining <= 0 ? 'bg-emerald-50' : 'bg-orange-50'}`} />
-                  <p className="text-gray-400 font-black uppercase tracking-widest text-[10px] mb-2">🎯 Remaining</p>
-                  <p
-                    className={`font-black leading-none ${remaining <= 0 ? 'text-emerald-600' : 'text-orange-600'}`}
-                    style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}
-                  >
+                {/* 2. Total Team Achievement Card (Indigo Theme) */}
+                <div className="bg-white rounded-3xl border border-indigo-50 shadow-lg p-6 relative overflow-hidden transition-all duration-200 hover:shadow-xl hover:scale-[1.01]">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-50 rounded-full blur-2xl" />
+                  <p className="text-indigo-600 font-black uppercase tracking-widest text-[9px] mb-2">👥 Team Sales</p>
+                  <p className="font-black text-indigo-600 leading-none text-2xl">
+                    ₹{totalTeamSales.toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-gray-400 text-[10px] font-bold mt-2">
+                    All employees combined
+                  </p>
+                </div>
+
+                {/* 3. Team Goal Remaining Card (Orange Theme) */}
+                <div className="bg-white rounded-3xl border border-orange-50 shadow-lg p-6 relative overflow-hidden transition-all duration-200 hover:shadow-xl hover:scale-[1.01]">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-orange-50 rounded-full blur-2xl" />
+                  <p className="text-orange-600 font-black uppercase tracking-widest text-[9px] mb-2">🎯 Left to Team Goal</p>
+                  <p className="font-black text-orange-600 leading-none text-2xl">
                     {remaining <= 0 ? '🏆 Done!' : `₹${remaining.toLocaleString('en-IN')}`}
                   </p>
-                  <p className="text-gray-400 text-xs font-bold mt-1">{remaining <= 0 ? 'Target Achieved!' : 'To Go'}</p>
+                  <p className="text-gray-400 text-[10px] font-bold mt-2">
+                    {remaining <= 0 ? 'Monthly Target Met!' : 'To reach team goal'}
+                  </p>
+                </div>
+
+                {/* 4. Your Share of the Team Sales Card (Teal Theme) */}
+                <div className="bg-white rounded-3xl border border-teal-50 shadow-lg p-6 relative overflow-hidden transition-all duration-200 hover:shadow-xl hover:scale-[1.01]">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-teal-50 rounded-full blur-2xl" />
+                  <p className="text-teal-600 font-black uppercase tracking-widest text-[9px] mb-2">🏆 Your share</p>
+                  <p className="font-black text-teal-600 leading-none text-2xl">
+                    {myShareOfTeam}%
+                  </p>
+                  <p className="text-gray-400 text-[10px] font-bold mt-2">
+                    Of total team sales done
+                  </p>
                 </div>
               </div>
 
-              {/* Progress Bar */}
+              {/* Progress Bar (Combined Team Progress) */}
               <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <p className="font-black text-gray-800 text-sm uppercase tracking-widest">Progress</p>
+                  <p className="font-black text-gray-800 text-sm uppercase tracking-widest">👥 Combined Team Progress</p>
                   <p className={`font-black text-3xl ${progressPercent >= 100 ? 'text-emerald-600' : 'text-indigo-600'}`}>{progressPercent}%</p>
                 </div>
                 {/* Track */}
