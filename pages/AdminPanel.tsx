@@ -429,6 +429,96 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
               )}
             </div>
 
+            {/* ━━━ SPECIAL TARGET SECTION ━━━ */}
+            <div className="border-t border-gray-100 pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <label className="block text-sm font-black text-gray-700 uppercase tracking-widest">⚡ Special Target</label>
+                  <p className="text-gray-400 text-xs font-bold mt-1">A bonus/campaign target shown separately to admin & employees</p>
+                </div>
+                {editGoals.specialTarget && (
+                  <button
+                    onClick={() => setEditGoals({ ...editGoals, specialTarget: null })}
+                    className="text-xs text-red-500 font-black hover:text-red-700 uppercase tracking-widest"
+                  >
+                    ✕ Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Special Target Name */}
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Special Target Name (e.g. Diwali Drive, Q2 Bonus)"
+                  value={editGoals.specialTarget?.name || ''}
+                  onChange={(e) => setEditGoals({
+                    ...editGoals,
+                    specialTarget: {
+                      name: e.target.value,
+                      targetAmount: editGoals.specialTarget?.targetAmount || 0,
+                      description: editGoals.specialTarget?.description || ''
+                    }
+                  })}
+                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                />
+
+                {/* Special Target Amount */}
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-black text-2xl">₹</span>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    value={editGoals.specialTarget?.targetAmount || ''}
+                    onChange={(e) => setEditGoals({
+                      ...editGoals,
+                      specialTarget: {
+                        name: editGoals.specialTarget?.name || '',
+                        targetAmount: Number(e.target.value),
+                        description: editGoals.specialTarget?.description || ''
+                      }
+                    })}
+                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl pl-12 pr-4 py-4 font-black text-gray-900 text-3xl focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                  />
+                </div>
+                {(editGoals.specialTarget?.targetAmount || 0) > 0 && (
+                  <p className="text-rose-600 font-black text-lg">= ₹{(editGoals.specialTarget!.targetAmount).toLocaleString('en-IN')}</p>
+                )}
+
+                {/* Special Target Description */}
+                <input
+                  type="text"
+                  placeholder="Short description (optional)"
+                  value={editGoals.specialTarget?.description || ''}
+                  onChange={(e) => setEditGoals({
+                    ...editGoals,
+                    specialTarget: {
+                      name: editGoals.specialTarget?.name || '',
+                      targetAmount: editGoals.specialTarget?.targetAmount || 0,
+                      description: e.target.value
+                    }
+                  })}
+                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                />
+
+                {/* Special Preview */}
+                {editGoals.specialTarget && editGoals.specialTarget.name && (editGoals.specialTarget.targetAmount || 0) > 0 && (
+                  <div className="p-5 bg-rose-50 rounded-2xl border border-rose-100">
+                    <p className="text-xs font-black text-rose-600 uppercase tracking-widest mb-3">Preview — Special Target Card</p>
+                    <div className="bg-gradient-to-br from-rose-500 to-orange-500 rounded-2xl p-6 text-white">
+                      <p className="text-rose-200 text-xs font-black uppercase tracking-widest mb-1">⚡ Special Target</p>
+                      <p className="text-white font-black text-xl mb-2">{editGoals.specialTarget.name}</p>
+                      <p className="font-black text-4xl mb-1">₹{(editGoals.specialTarget.targetAmount).toLocaleString('en-IN')}</p>
+                      {editGoals.specialTarget.description && (
+                        <p className="text-rose-200 text-sm font-bold">{editGoals.specialTarget.description}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Save Button */}
             <button
               onClick={handleSaveGoals}
@@ -439,13 +529,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
                   : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 hover:scale-[1.01] active:scale-[0.99] shadow-indigo-200'
               }`}
             >
-              {savingGoals ? '⏳ Saving to Firebase...' : '🎯 Save Monthly Goals (Live Sync)'}
+              {savingGoals ? '⏳ Saving to Firebase...' : '🎯 Save All Goals (Live Sync)'}
             </button>
 
-            {/* Preview */}
+            {/* Monthly Target Preview */}
             {(editGoals.targetAmount || 0) > 0 && (
               <div className="p-5 bg-indigo-50 rounded-2xl border border-indigo-100">
-                <p className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-3">Preview — What Employees Will See</p>
+                <p className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-3">Preview — Monthly Target Card</p>
                 <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-6 text-white">
                   <p className="text-indigo-200 text-xs font-black uppercase tracking-widest mb-1">📊 Target for {editGoals.targetMonth ? new Date(editGoals.targetMonth + '-02').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : 'This Month'}</p>
                   <p className="font-black text-5xl mb-1">₹{(editGoals.targetAmount || 0).toLocaleString('en-IN')}</p>

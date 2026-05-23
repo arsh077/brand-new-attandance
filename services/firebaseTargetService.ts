@@ -9,17 +9,26 @@ export interface EmployeeOfMonth {
     department: string;
 }
 
+// A special/bonus target separate from the regular monthly target
+export interface SpecialTarget {
+    name: string;           // e.g. "Diwali Drive", "Q2 Bonus"
+    targetAmount: number;   // special target amount in ₹
+    description?: string;   // optional description
+}
+
 export interface MonthlyGoals {
-    targetAmount: number;       // Monthly sales target in ₹
-    targetMonth: string;        // "YYYY-MM" e.g. "2026-05"
+    targetAmount: number;           // Regular monthly sales target in ₹
+    targetMonth: string;            // "YYYY-MM" e.g. "2026-05"
     employeeOfMonth: EmployeeOfMonth | null;
+    specialTarget: SpecialTarget | null;  // Special/bonus target
     updatedAt?: any;
 }
 
 export const DEFAULT_MONTHLY_GOALS: MonthlyGoals = {
     targetAmount: 0,
     targetMonth: '',
-    employeeOfMonth: null
+    employeeOfMonth: null,
+    specialTarget: null
 };
 
 class FirebaseTargetService {
@@ -62,3 +71,4 @@ class FirebaseTargetService {
 }
 
 export const firebaseTargetService = new FirebaseTargetService();
+

@@ -43,13 +43,32 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
     return () => unsub();
   }, [currentUser.id, yearMonthStr, isAdmin]);
 
+  // Track ALL employees' sales total (for admin view)
+  const [totalTeamSales, setTotalTeamSales] = useState(0);
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsub = firebaseSalesService.subscribeToMonthlySales(yearMonthStr, (entries: any[]) => {
+      const total = entries.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+      setTotalTeamSales(total);
+    });
+    return () => unsub();
+  }, [isAdmin, yearMonthStr]);
+
   // Computed values for target display
   const targetAmount = monthlyGoals?.targetAmount || 0;
-  const remaining = Math.max(0, targetAmount - currentMonthSales);
-  const progressPercent = targetAmount > 0 ? Math.min(100, Math.round((currentMonthSales / targetAmount) * 100)) : 0;
+  const salesForProgress = isAdmin ? totalTeamSales : currentMonthSales;
+  const remaining = Math.max(0, targetAmount - salesForProgress);
+  const progressPercent = targetAmount > 0 ? Math.min(100, Math.round((salesForProgress / targetAmount) * 100)) : 0;
   const monthName = monthlyGoals?.targetMonth
     ? new Date(monthlyGoals.targetMonth + '-02').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
     : now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+  // Special Target computed values
+  const specialTarget = monthlyGoals?.specialTarget || null;
+  const specialRemaining = specialTarget ? Math.max(0, specialTarget.targetAmount - salesForProgress) : 0;
+  const specialPercent = specialTarget && specialTarget.targetAmount > 0
+    ? Math.min(100, Math.round((salesForProgress / specialTarget.targetAmount) * 100))
+    : 0;
 
   // Real-time attendance calculation (updates automatically from Firebase!)
   // CRITICAL: Only count TODAY's attendance, filter by exact date match
@@ -171,6 +190,98 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
 
       {isAdmin && (
         <>
+          {/* ━━━ ADMIN TARGET OVERVIEW (Monthly + Special) ━━━ */}
+          {(targetAmount > 0 || specialTarget) && (
+            <div className="space-y-4 animate-slide-up">
+
+              {/* Monthly Target — Team View */}
+              {targetAmount > 0 && (
+                <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-3xl p-10 text-white shadow-2xl shadow-indigo-200 overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+                  <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
+                  <div className="relative z-10">
+                    <p className="text-indigo-200 font-black uppercase tracking-[0.3em] text-[10px] mb-2">📊 Team Monthly Target — {monthName}</p>
+                    <div className="text-white font-black leading-none mb-4" style={{ fontSize: 'clamp(3rem, 7vw, 5rem)', textShadow: '0 4px 30px rgba(0,0,0,0.3)' }}>
+                      ₹{targetAmount.toLocaleString('en-IN')}
+                    </div>
+                    {/* Team progress row */}
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="bg-white/15 rounded-2xl p-4">
+                        <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-1">✅ Achieved</p>
+                        <p className="text-white font-black text-2xl">₹{totalTeamSales.toLocaleString('en-IN')}</p>
+                      </div>
+                      <div className="bg-white/15 rounded-2xl p-4">
+                        <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-1">🎯 Remaining</p>
+                        <p className={`font-black text-2xl ${remaining <= 0 ? 'text-emerald-300' : 'text-orange-300'}`}>
+                          {remaining <= 0 ? '🏆 Done!' : `₹${remaining.toLocaleString('en-IN')}`}
+                        </p>
+                      </div>
+                      <div className="bg-white/15 rounded-2xl p-4">
+                        <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-1">📈 Progress</p>
+                        <p className={`font-black text-2xl ${progressPercent >= 100 ? 'text-emerald-300' : 'text-white'}`}>{progressPercent}%</p>
+                      </div>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-full bg-white/20 rounded-full h-4 overflow-hidden">
+                      <div
+                        className={`h-4 rounded-full transition-all duration-1000 ${progressPercent >= 100 ? 'bg-emerald-400' : 'bg-white'}`}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <p className="text-indigo-200 text-[10px] font-bold">₹0</p>
+                      <p className="text-indigo-200 text-[10px] font-bold">₹{targetAmount.toLocaleString('en-IN')}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Special Target Card */}
+              {specialTarget && (
+                <div className="relative bg-gradient-to-br from-rose-500 via-pink-600 to-orange-500 rounded-3xl p-10 text-white shadow-2xl shadow-rose-200 overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+                  <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
+                  <div className="relative z-10">
+                    <p className="text-rose-200 font-black uppercase tracking-[0.3em] text-[10px] mb-1">⚡ Special Target</p>
+                    <p className="text-white font-black text-2xl mb-3" style={{ letterSpacing: '-0.01em' }}>{specialTarget.name}</p>
+                    {specialTarget.description && (
+                      <p className="text-rose-200 text-sm font-bold mb-4">{specialTarget.description}</p>
+                    )}
+                    <div className="text-white font-black leading-none mb-4" style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', textShadow: '0 4px 30px rgba(0,0,0,0.3)' }}>
+                      ₹{specialTarget.targetAmount.toLocaleString('en-IN')}
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="bg-white/15 rounded-2xl p-4">
+                        <p className="text-rose-200 text-[10px] font-black uppercase tracking-widest mb-1">✅ Achieved</p>
+                        <p className="text-white font-black text-2xl">₹{totalTeamSales.toLocaleString('en-IN')}</p>
+                      </div>
+                      <div className="bg-white/15 rounded-2xl p-4">
+                        <p className="text-rose-200 text-[10px] font-black uppercase tracking-widest mb-1">🎯 Remaining</p>
+                        <p className={`font-black text-2xl ${specialRemaining <= 0 ? 'text-emerald-300' : 'text-yellow-200'}`}>
+                          {specialRemaining <= 0 ? '🏆 Done!' : `₹${specialRemaining.toLocaleString('en-IN')}`}
+                        </p>
+                      </div>
+                      <div className="bg-white/15 rounded-2xl p-4">
+                        <p className="text-rose-200 text-[10px] font-black uppercase tracking-widest mb-1">📈 Progress</p>
+                        <p className={`font-black text-2xl ${specialPercent >= 100 ? 'text-emerald-300' : 'text-white'}`}>{specialPercent}%</p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-white/20 rounded-full h-4 overflow-hidden">
+                      <div
+                        className={`h-4 rounded-full transition-all duration-1000 ${specialPercent >= 100 ? 'bg-emerald-400' : 'bg-yellow-300'}`}
+                        style={{ width: `${specialPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <p className="text-rose-200 text-[10px] font-bold">₹0</p>
+                      <p className="text-rose-200 text-[10px] font-bold">₹{specialTarget.targetAmount.toLocaleString('en-IN')}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Real-time Attendance Tracker */}
           <RealtimeAttendance
             employees={employees}
@@ -279,6 +390,69 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                 <div className="flex justify-between mt-2">
                   <p className="text-[10px] font-bold text-gray-400">₹0</p>
                   <p className="text-[10px] font-bold text-gray-400">₹{targetAmount.toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ━━━ SPECIAL TARGET SECTION (Employee View) ━━━ */}
+          {specialTarget && (
+            <div className="space-y-4 animate-slide-up">
+              {/* Special Target Header Card */}
+              <div className="relative bg-gradient-to-br from-rose-500 via-pink-600 to-orange-500 rounded-3xl p-10 text-white shadow-2xl shadow-rose-200 overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+                <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
+                <div className="relative z-10">
+                  <p className="text-rose-200 font-black uppercase tracking-[0.3em] text-[10px] mb-1">⚡ Special Target</p>
+                  <p className="text-white font-black text-2xl mb-4">{specialTarget.name}</p>
+                  {specialTarget.description && (
+                    <p className="text-rose-200 text-sm font-bold mb-4">{specialTarget.description}</p>
+                  )}
+                  <div
+                    className="text-white font-black leading-none mb-3"
+                    style={{ fontSize: 'clamp(3rem, 7vw, 5rem)', textShadow: '0 4px 30px rgba(0,0,0,0.3)' }}
+                  >
+                    ₹{specialTarget.targetAmount.toLocaleString('en-IN')}
+                  </div>
+                  <p className="text-rose-200 font-bold text-sm uppercase tracking-widest">Special Sales Target</p>
+                </div>
+              </div>
+
+              {/* Special Progress Cards */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-rose-50 rounded-full blur-2xl" />
+                  <p className="text-gray-400 font-black uppercase tracking-widest text-[10px] mb-2">⚡ Your Achievement</p>
+                  <p className="font-black text-rose-600 leading-none" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>
+                    ₹{currentMonthSales.toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-gray-400 text-xs font-bold mt-1">This Month</p>
+                </div>
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6 relative overflow-hidden">
+                  <div className={`absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl ${specialRemaining <= 0 ? 'bg-emerald-50' : 'bg-orange-50'}`} />
+                  <p className="text-gray-400 font-black uppercase tracking-widest text-[10px] mb-2">🎯 Remaining</p>
+                  <p className={`font-black leading-none ${specialRemaining <= 0 ? 'text-emerald-600' : 'text-orange-600'}`} style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>
+                    {specialRemaining <= 0 ? '🏆 Done!' : `₹${specialRemaining.toLocaleString('en-IN')}`}
+                  </p>
+                  <p className="text-gray-400 text-xs font-bold mt-1">{specialRemaining <= 0 ? 'Special Achieved!' : 'To Go'}</p>
+                </div>
+              </div>
+
+              {/* Special Progress Bar */}
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <p className="font-black text-gray-800 text-sm uppercase tracking-widest">⚡ Special Progress</p>
+                  <p className={`font-black text-3xl ${specialPercent >= 100 ? 'text-emerald-600' : 'text-rose-600'}`}>{specialPercent}%</p>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-5 overflow-hidden">
+                  <div
+                    className={`h-5 rounded-full transition-all duration-1000 ease-out ${specialPercent >= 100 ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-rose-500 to-orange-500'}`}
+                    style={{ width: `${specialPercent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-2">
+                  <p className="text-[10px] font-bold text-gray-400">₹0</p>
+                  <p className="text-[10px] font-bold text-gray-400">₹{specialTarget.targetAmount.toLocaleString('en-IN')}</p>
                 </div>
               </div>
             </div>
