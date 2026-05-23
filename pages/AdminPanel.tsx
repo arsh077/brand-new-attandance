@@ -84,6 +84,38 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
     }
   };
 
+  // Personal Targets editing states
+  const [personalTargets, setPersonalTargets] = useState<Record<string, number>>({});
+  const [savingTargets, setSavingTargets] = useState<Record<string, boolean>>({});
+
+  // Sync personal targets when employees list changes
+  useEffect(() => {
+    const targets: Record<string, number> = {};
+    employees.forEach(emp => {
+      targets[emp.id] = emp.personalTarget || 0;
+    });
+    setPersonalTargets(targets);
+  }, [employees]);
+
+  const handleSavePersonalTarget = async (empId: string) => {
+    const targetVal = personalTargets[empId] || 0;
+    const employee = employees.find(emp => emp.id === empId);
+    if (!employee) return;
+
+    setSavingTargets(prev => ({ ...prev, [empId]: true }));
+    try {
+      await firebaseEmployeeService.updateEmployee({
+        ...employee,
+        personalTarget: targetVal
+      });
+      alert(`✅ Personal target updated for ${employee.name} to ₹${targetVal.toLocaleString('en-IN')}`);
+    } catch (error) {
+      alert('❌ Error updating personal target: ' + error);
+    } finally {
+      setSavingTargets(prev => ({ ...prev, [empId]: false }));
+    }
+  };
+
   const [authorizedUsers, setAuthorizedUsers] = useState(AUTHORIZED_USERS);
 
   // Add New Login User
@@ -206,10 +238,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-2xl">
+      <div className="flex space-x-1 bg-gray-100 p-1 rounded-2xl overflow-x-auto">
         {[
           { id: 'users', label: 'User Management', icon: '👥' },
           { id: 'monthly-goals', label: 'Monthly Goals', icon: '🎯' },
+          { id: 'personal-targets', label: 'Personal Targets', icon: '👤' },
           { id: 'settings', label: 'System Settings', icon: '⚙️' },
           { id: 'security', label: 'Security', icon: '🔒' },
           { id: 'backup', label: 'Data Backup', icon: '💾' }
@@ -543,6 +576,125 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Personal Targets Section */}
+      {activeSection === 'personal-targets' && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <div className="relative bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 rounded-3xl p-8 text-white shadow-xl overflow-hidden animate-fade-in">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+            <div className="relative z-10">
+              <span className="text-xs font-black text-indigo-400 uppercase tracking-[0.3em]">🎯 Target Assignment</span>
+              <h3 className="text-2xl font-black text-white mt-1 mb-2">👤 Employee Personal Targets</h3>
+              <p className="text-slate-300 text-sm font-medium max-w-2xl leading-relaxed">
+                Set and manage individual sales targets for your team. Each employee will see their personal target, achievement, and progress bar privately on their dashboard.
+              </p>
+            </div>
+          </div>
+
+          {/* Employee Target List */}
+          <div className="space-y-4 animate-slide-up">
+            {employees
+              .filter(emp => emp.status === 'ACTIVE' || (emp as any).status === undefined)
+              .map(emp => {
+                const currentVal = personalTargets[emp.id] || 0;
+                const isSaving = !!savingTargets[emp.id];
+                const initials = emp.name.split(' ').map(n => n[0]).join('').toUpperCase();
+
+                return (
+                  <div
+                    key={emp.id}
+                    className="bg-white rounded-3xl border border-gray-100 shadow-md p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 transition-all duration-200 hover:shadow-lg hover:border-indigo-100"
+                  >
+                    {/* Employee Profile */}
+                    <div className="flex items-center space-x-4">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-600 border border-indigo-100 flex items-center justify-center text-lg font-black shadow-inner">
+                        {initials}
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-black text-gray-900 text-lg leading-snug">{emp.name}</h4>
+                          <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                            {emp.id}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                          {emp.designation} — <span className="text-indigo-500">{emp.department}</span>
+                        </p>
+                        <div className="mt-2 flex items-center space-x-2">
+                          {emp.personalTarget && emp.personalTarget > 0 ? (
+                            <span className="inline-flex items-center bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full border border-emerald-100">
+                              🎯 Active Target: ₹{emp.personalTarget.toLocaleString('en-IN')}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1 rounded-full border border-amber-100">
+                              ⚠️ No personal target set
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Target Setting Controls */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 lg:w-2/5">
+                      <div className="relative flex-1">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">₹</span>
+                        <input
+                          type="number"
+                          placeholder="Set target amount"
+                          value={currentVal || ''}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
+                            setPersonalTargets(prev => ({ ...prev, [emp.id]: val }));
+                          }}
+                          className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl pl-8 pr-4 py-3.5 font-black text-gray-900 text-lg focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all"
+                          min="0"
+                        />
+                      </div>
+
+                      {/* Save Button */}
+                      <button
+                        onClick={() => handleSavePersonalTarget(emp.id)}
+                        disabled={isSaving}
+                        className={`px-6 py-3.5 rounded-2xl font-black text-white shadow-md transition-all sm:w-36 ${
+                          isSaving
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 hover:scale-[1.02] active:scale-[0.98] hover:shadow-emerald-100'
+                        }`}
+                      >
+                        {isSaving ? '⏳ Saving...' : 'Save Target'}
+                      </button>
+                    </div>
+
+                    {/* Micro Presets Panel */}
+                    <div className="flex flex-wrap gap-2 lg:flex-col lg:justify-center border-t border-dashed border-gray-100 pt-4 lg:border-t-0 lg:pt-0">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 hidden lg:block text-left">Quick Presets</div>
+                      <div className="flex gap-2">
+                        {[25000, 50000, 100000].map(amt => (
+                          <button
+                            key={amt}
+                            onClick={() => setPersonalTargets(prev => ({ ...prev, [emp.id]: amt }))}
+                            className="bg-slate-50 hover:bg-indigo-50 border border-slate-100 hover:border-indigo-200 text-slate-600 hover:text-indigo-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+                          >
+                            ₹{(amt / 1000)}k
+                          </button>
+                        ))}
+                        {currentVal > 0 && (
+                          <button
+                            onClick={() => setPersonalTargets(prev => ({ ...prev, [emp.id]: 0 }))}
+                            className="bg-rose-50 hover:bg-rose-100 border border-rose-100 text-rose-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}

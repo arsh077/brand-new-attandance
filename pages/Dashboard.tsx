@@ -70,6 +70,13 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
     ? Math.min(100, Math.round((salesForProgress / specialTarget.targetAmount) * 100))
     : 0;
 
+  // Personal Target computed values
+  const personalTargetAmount = currentUser?.personalTarget || 0;
+  const personalRemaining = Math.max(0, personalTargetAmount - currentMonthSales);
+  const personalPercent = personalTargetAmount > 0
+    ? Math.min(100, Math.round((currentMonthSales / personalTargetAmount) * 100))
+    : 0;
+
   // Real-time attendance calculation (updates automatically from Firebase!)
   // CRITICAL: Only count TODAY's attendance, filter by exact date match
   const todayAttendance = attendance.filter(a => {
@@ -453,6 +460,73 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                 <div className="flex justify-between mt-2">
                   <p className="text-[10px] font-bold text-gray-400">₹0</p>
                   <p className="text-[10px] font-bold text-gray-400">₹{specialTarget.targetAmount.toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ━━━ PERSONAL TARGET SECTION (Employee View - Private) ━━━ */}
+          {personalTargetAmount > 0 && (
+            <div className="space-y-4 animate-slide-up">
+              {/* Personal Target Header Card */}
+              <div className="relative bg-gradient-to-br from-emerald-600 via-teal-705 to-cyan-800 rounded-3xl p-10 text-white shadow-2xl shadow-emerald-100 overflow-hidden">
+                {/* Background decoration */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
+                <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
+                <div className="relative z-10">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="text-xs font-black uppercase tracking-[0.25em] text-emerald-200">👤 My Personal Target</span>
+                    <span className="bg-emerald-500/30 text-emerald-100 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border border-emerald-400/20">Private View</span>
+                  </div>
+                  <div
+                    className="text-white font-black leading-none mb-3"
+                    style={{ fontSize: 'clamp(3rem, 7.5vw, 5rem)', textShadow: '0 4px 30px rgba(0,0,0,0.3)' }}
+                  >
+                    ₹{personalTargetAmount.toLocaleString('en-IN')}
+                  </div>
+                  <p className="text-emerald-100 font-bold text-xs uppercase tracking-widest">Your Private Monthly Sales Goal</p>
+                </div>
+              </div>
+
+              {/* Progress Cards Row */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Your Personal Sales Achievement */}
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-full blur-2xl" />
+                  <p className="text-gray-400 font-black uppercase tracking-widest text-[10px] mb-2">📈 Your Contribution</p>
+                  <p className="font-black text-emerald-600 leading-none" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>
+                    ₹{currentMonthSales.toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-gray-400 text-xs font-bold mt-1">Sales Done by You</p>
+                </div>
+
+                {/* Remaining */}
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6 relative overflow-hidden">
+                  <div className={`absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl ${personalRemaining <= 0 ? 'bg-emerald-50' : 'bg-cyan-50'}`} />
+                  <p className="text-gray-400 font-black uppercase tracking-widest text-[10px] mb-2">🎯 Left to Achieve</p>
+                  <p className={`font-black leading-none ${personalRemaining <= 0 ? 'text-emerald-600' : 'text-cyan-600'}`} style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)' }}>
+                    {personalRemaining <= 0 ? '🏆 Done!' : `₹${personalRemaining.toLocaleString('en-IN')}`}
+                  </p>
+                  <p className="text-gray-400 text-xs font-bold mt-1">{personalRemaining <= 0 ? 'Target Mastered!' : 'Remaining to Goal'}</p>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-lg p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <p className="font-black text-gray-800 text-sm uppercase tracking-widest">Target Progress</p>
+                  <p className={`font-black text-3xl ${personalPercent >= 100 ? 'text-emerald-600' : 'text-teal-600'}`}>{personalPercent}%</p>
+                </div>
+                {/* Track */}
+                <div className="w-full bg-gray-100 rounded-full h-5 overflow-hidden">
+                  <div
+                    className={`h-5 rounded-full transition-all duration-1000 ease-out ${personalPercent >= 100 ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : 'bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-500'}`}
+                    style={{ width: `${personalPercent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-2">
+                  <p className="text-[10px] font-bold text-gray-400">₹0</p>
+                  <p className="text-[10px] font-bold text-gray-400">₹{personalTargetAmount.toLocaleString('en-IN')}</p>
                 </div>
               </div>
             </div>

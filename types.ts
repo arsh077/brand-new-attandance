@@ -38,6 +38,7 @@ export interface Employee {
   dateJoined: string;
   dateOfBirth?: string; // Format: YYYY-MM-DD
   leaveBalance: Record<LeaveType, number>;
+  personalTarget?: number; // Personal sales target in ₹
 }
 
 export interface AttendanceRecord {
