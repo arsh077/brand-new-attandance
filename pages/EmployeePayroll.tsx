@@ -545,6 +545,16 @@ const EmployeePayroll: React.FC<EmployeePayrollProps> = ({
   const yearMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const monthName = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
+  // Get active special target and calculate days left
+  const specialTarget = monthlyGoals?.specialTarget || null;
+  const tiers = specialTarget?.tiers || [];
+  const today = now.toISOString().split('T')[0];
+  const endDate = specialTarget?.endDate || null;
+  const daysLeft = endDate
+    ? Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(today).getTime()) / 86400000))
+    : null;
+  const isExpired = endDate ? new Date(endDate) < new Date(today) : false;
+
   // Local employees state so salary edits reflect instantly in cards
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   useEffect(() => { setEmployees(initialEmployees); }, [initialEmployees]);
@@ -592,6 +602,46 @@ const EmployeePayroll: React.FC<EmployeePayrollProps> = ({
           <p className="text-amber-800 font-bold text-sm">2 Late Days = 1 Day Cut</p>
         </div>
       </div>
+
+      {/* Active Incentive Plan Banner (if special target exists & not expired) */}
+      {specialTarget && !isExpired && (
+        <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-orange-500 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="bg-white/20 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full backdrop-blur-sm">
+                  🔥 Active Incentive Plan
+                </span>
+                {daysLeft !== null && (
+                  <span className="bg-amber-400 text-amber-950 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full animate-pulse">
+                    {daysLeft === 0 ? 'Last Day!' : `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`}
+                  </span>
+                )}
+              </div>
+              <h3 className="text-2xl font-black mt-2 leading-tight">{specialTarget.name}</h3>
+              {specialTarget.description && (
+                <p className="text-rose-100 text-xs font-semibold mt-1 max-w-xl">{specialTarget.description}</p>
+              )}
+            </div>
+
+            {/* Slabs Grid */}
+            {tiers.length > 0 && (
+              <div className="flex flex-wrap gap-2.5 max-w-full lg:max-w-xl">
+                {[...tiers]
+                  .sort((a, b) => a.salesAmount - b.salesAmount)
+                  .map((tier, idx) => (
+                    <div key={idx} className="bg-white/15 backdrop-blur-md rounded-2xl px-4 py-2.5 border border-white/10 text-center min-w-[125px] flex-1 lg:flex-none">
+                      <p className="text-rose-100 text-[9px] font-black uppercase tracking-widest">Slab {idx + 1}</p>
+                      <p className="text-white font-black text-sm">₹{tier.salesAmount.toLocaleString('en-IN')}+</p>
+                      <p className="text-yellow-300 font-black text-[10px] mt-0.5">+₹{tier.bonus.toLocaleString('en-IN')} Bonus</p>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Monthly Summary Banner (Admin only) */}
       {isAdmin && (

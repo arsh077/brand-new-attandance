@@ -75,7 +75,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
     if (!onUpdateGoals) return;
     setSavingGoals(true);
     try {
-      await onUpdateGoals(editGoals);
+      let finalGoals = { ...editGoals };
+      if (finalGoals.specialTarget) {
+        const tiers = finalGoals.specialTarget.tiers || [];
+        const maxSlab = tiers.length > 0 ? Math.max(...tiers.map(t => t.salesAmount || 0)) : 0;
+        finalGoals.specialTarget.targetAmount = maxSlab;
+      }
+      await onUpdateGoals(finalGoals);
       alert('✅ Monthly goals saved! All employees will see the updated target live.');
     } catch (error) {
       alert('❌ Error saving goals: ' + error);
@@ -695,41 +701,51 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
                     <input
                       type="number"
                       placeholder="0"
-                      min="0"
-                      value={editGoals.specialTarget?.targetAmount || ''}
-                      onChange={(e) => setEditGoals({
-                        ...editGoals,
-                        specialTarget: {
-                          ...editGoals.specialTarget!,
-                          name: editGoals.specialTarget?.name || '',
-                          targetAmount: Number(e.target.value),
-                        }
-                      })}
-                      className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl pl-12 pr-4 py-4 font-black text-gray-900 text-3xl focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                      disabled
+                      value={(() => {
+                        const tiers = editGoals.specialTarget?.tiers || [];
+                        return tiers.length > 0 ? Math.max(...tiers.map(t => t.salesAmount || 0)) : 0;
+                      })()}
+                      className="w-full bg-gray-100 border-2 border-gray-100 rounded-2xl pl-12 pr-4 py-4 font-black text-gray-400 text-3xl cursor-not-allowed"
                     />
                   </div>
-                  {(editGoals.specialTarget?.targetAmount || 0) > 0 && (
-                    <p className="text-rose-600 font-black text-lg mt-1">= ₹{(editGoals.specialTarget!.targetAmount).toLocaleString('en-IN')}</p>
-                  )}
+                  {(() => {
+                    const maxSlab = (() => {
+                      const tiers = editGoals.specialTarget?.tiers || [];
+                      return tiers.length > 0 ? Math.max(...tiers.map(t => t.salesAmount || 0)) : 0;
+                    })();
+                    return maxSlab > 0 ? (
+                      <p className="text-rose-600 font-black text-lg mt-1">= ₹{maxSlab.toLocaleString('en-IN')}</p>
+                    ) : null;
+                  })()}
                 </div>
 
                 {/* Special Preview */}
-                {editGoals.specialTarget && editGoals.specialTarget.name && (editGoals.specialTarget.targetAmount || 0) > 0 && (
-                  <div className="p-5 bg-rose-50 rounded-2xl border border-rose-100">
-                    <p className="text-xs font-black text-rose-600 uppercase tracking-widest mb-3">Preview — Special Target Card</p>
-                    <div className="bg-gradient-to-br from-rose-500 to-orange-500 rounded-2xl p-6 text-white">
-                      <p className="text-rose-200 text-xs font-black uppercase tracking-widest mb-1">⚡ Special Target</p>
-                      <p className="text-white font-black text-xl mb-2">{editGoals.specialTarget.name}</p>
-                      <p className="font-black text-4xl mb-1">₹{(editGoals.specialTarget.targetAmount).toLocaleString('en-IN')}</p>
-                      {editGoals.specialTarget.description && (
-                        <p className="text-rose-200 text-sm font-bold">{editGoals.specialTarget.description}</p>
-                      )}
-                      {editGoals.specialTarget.timePeriodDays && (
-                        <p className="text-rose-200 text-xs font-bold mt-2">⏱ {editGoals.specialTarget.timePeriodDays} day campaign</p>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {(() => {
+                  const maxSlab = editGoals.specialTarget?.tiers && editGoals.specialTarget.tiers.length > 0
+                    ? Math.max(...editGoals.specialTarget.tiers.map(t => t.salesAmount || 0))
+                    : 0;
+                  
+                  if (editGoals.specialTarget && editGoals.specialTarget.name && maxSlab > 0) {
+                    return (
+                      <div className="p-5 bg-rose-50 rounded-2xl border border-rose-100">
+                        <p className="text-xs font-black text-rose-600 uppercase tracking-widest mb-3">Preview — Special Target Card</p>
+                        <div className="bg-gradient-to-br from-rose-500 to-orange-500 rounded-2xl p-6 text-white">
+                          <p className="text-rose-200 text-xs font-black uppercase tracking-widest mb-1">⚡ Special Target</p>
+                          <p className="text-white font-black text-xl mb-2">{editGoals.specialTarget.name}</p>
+                          <p className="font-black text-4xl mb-1">₹{maxSlab.toLocaleString('en-IN')}</p>
+                          {editGoals.specialTarget.description && (
+                            <p className="text-rose-200 text-sm font-bold">{editGoals.specialTarget.description}</p>
+                          )}
+                          {editGoals.specialTarget.timePeriodDays && (
+                            <p className="text-rose-200 text-xs font-bold mt-2">⏱ {editGoals.specialTarget.timePeriodDays} day campaign</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </div>
 
