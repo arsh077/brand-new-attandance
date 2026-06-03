@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { UserRole, Employee, AttendanceRecord, AttendanceStatus } from '../types';
 import { MonthlyGoals, IncentiveTier } from '../services/firebaseTargetService';
 import { firebaseSalesService } from '../services/firebaseSalesService';
@@ -132,37 +133,37 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
     }
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }}
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         style={{ animation: 'modalSlideUp 0.3s cubic-bezier(0.16,1,0.3,1) forwards' }}
       >
         {/* Modal Header */}
-        <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-t-3xl p-8 text-white overflow-hidden">
+        <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-t-2xl p-5 text-white overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
           <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+            className="absolute top-3.5 right-3.5 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors z-20"
           >
             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="relative z-10 flex items-center space-x-5">
-            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-white text-xl font-black border border-white/20 shadow-inner">
+          <div className="relative z-10 flex items-center space-x-4">
+            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-white text-lg font-black border border-white/20 shadow-inner">
               {initials}
             </div>
             <div>
-              <p className="text-indigo-200 text-[10px] font-black uppercase tracking-[0.3em] mb-1">Employee Profile</p>
-              <h3 className="text-2xl font-black text-white leading-tight">{emp.name}</h3>
-              <p className="text-indigo-200 text-sm font-bold">{emp.designation} · {emp.department}</p>
+              <p className="text-indigo-200 text-[9px] font-black uppercase tracking-[0.3em] mb-0.5">Employee Profile</p>
+              <h3 className="text-xl font-black text-white leading-tight">{emp.name}</h3>
+              <p className="text-indigo-200 text-xs font-bold">{emp.designation} · {emp.department}</p>
             </div>
           </div>
         </div>
@@ -171,7 +172,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
         <div className="flex border-b border-gray-100">
           <button
             onClick={() => setActiveTab('salary')}
-            className={`flex-1 py-4 text-sm font-black uppercase tracking-widest transition-colors ${
+            className={`flex-1 py-3.5 text-xs font-black uppercase tracking-widest transition-colors ${
               activeTab === 'salary'
                 ? 'text-indigo-600 border-b-2 border-indigo-600'
                 : 'text-gray-400 hover:text-gray-700'
@@ -181,7 +182,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
           </button>
           <button
             onClick={() => setActiveTab('incentive')}
-            className={`flex-1 py-4 text-sm font-black uppercase tracking-widest transition-colors ${
+            className={`flex-1 py-3.5 text-xs font-black uppercase tracking-widest transition-colors ${
               activeTab === 'incentive'
                 ? 'text-rose-600 border-b-2 border-rose-600'
                 : 'text-gray-400 hover:text-gray-700'
@@ -193,50 +194,50 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
 
         {/* ── SALARY TAB ── */}
         {activeTab === 'salary' && (
-          <div className="p-6 space-y-5">
+          <div className="p-5 space-y-4">
 
             {/* ── ADMIN: Edit Base Salary ── */}
             {isAdmin && (
-              <div className={`rounded-2xl border-2 p-5 transition-all duration-200 ${
-                editingSalary ? 'border-indigo-300 bg-indigo-50' : 'border-dashed border-gray-200 bg-gray-50 hover:border-indigo-200 hover:bg-indigo-50/40'
+              <div className={`rounded-xl border-2 p-4 transition-all duration-200 ${
+                editingSalary ? 'border-indigo-300 bg-indigo-50/50' : 'border-dashed border-gray-200 bg-gray-50 hover:border-indigo-200 hover:bg-indigo-50/30'
               }`}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-base">✏️</span>
-                    <p className="text-xs font-black text-gray-600 uppercase tracking-widest">Edit Base Salary</p>
+                <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-sm">✏️</span>
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Edit Base Salary</p>
                     {saveSuccess && (
-                      <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">✅ Saved!</span>
+                      <span className="bg-emerald-100 text-emerald-700 text-[9px] font-black px-1.5 py-0.5 rounded-full animate-pulse">✅ Saved!</span>
                     )}
                   </div>
                   {!editingSalary ? (
                     <button
                       onClick={() => { setSalaryInput(localSalary); setEditingSalary(true); }}
-                      className="flex items-center space-x-1.5 bg-indigo-600 text-white text-xs font-black px-4 py-2 rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100"
+                      className="flex items-center space-x-1 bg-indigo-600 text-white text-[10px] font-black px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                       <span>Edit Salary</span>
                     </button>
                   ) : (
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-1.5">
                       <button
                         onClick={() => setEditingSalary(false)}
-                        className="text-xs font-black text-gray-500 px-3 py-2 rounded-xl hover:bg-gray-200 transition-colors"
+                        className="text-[10px] font-black text-gray-500 px-2.5 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleSaveSalary}
                         disabled={savingSalary}
-                        className={`flex items-center space-x-1.5 text-xs font-black px-4 py-2 rounded-xl text-white transition-all ${
-                          savingSalary ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-100'
+                        className={`flex items-center space-x-1 text-[10px] font-black px-3 py-1.5 rounded-lg text-white transition-all ${
+                          savingSalary ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'
                         }`}
                       >
                         {savingSalary ? (
-                          <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> <span>Saving...</span></>
+                          <><span className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> <span>Saving...</span></>
                         ) : (
-                          <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg><span>Save</span></>
+                          <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg><span>Save</span></>
                         )}
                       </button>
                     </div>
@@ -244,14 +245,14 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
                 </div>
 
                 {!editingSalary ? (
-                  <div className="flex items-baseline space-x-2">
-                    <p className="text-2xl font-black text-gray-800">₹{localSalary.toLocaleString('en-IN')}</p>
-                    <p className="text-xs font-bold text-gray-400">current base salary</p>
+                  <div className="flex items-baseline space-x-1.5">
+                    <p className="text-xl font-black text-gray-800">₹{localSalary.toLocaleString('en-IN')}</p>
+                    <p className="text-[10px] font-bold text-gray-400">current base salary</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500 font-black text-xl">₹</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-500 font-black text-lg">₹</span>
                       <input
                         type="number"
                         min="0"
@@ -259,16 +260,16 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
                         value={salaryInput || ''}
                         onChange={(e) => setSalaryInput(Number(e.target.value))}
                         onKeyDown={(e) => { if (e.key === 'Enter') handleSaveSalary(); if (e.key === 'Escape') setEditingSalary(false); }}
-                        className="w-full bg-white border-2 border-indigo-200 rounded-2xl pl-10 pr-4 py-3.5 font-black text-gray-900 text-2xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                        className="w-full bg-white border-2 border-indigo-200 rounded-xl pl-8 pr-3 py-2 font-black text-gray-900 text-xl focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                         placeholder="Enter new salary"
                       />
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-1.5 flex-wrap">
                       {[8000, 10000, 12000, 15000, 20000, 25000].map(amt => (
                         <button
                           key={amt}
                           onClick={() => setSalaryInput(amt)}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all ${
                             salaryInput === amt
                               ? 'bg-indigo-600 text-white border-indigo-600'
                               : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
@@ -278,82 +279,82 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
                         </button>
                       ))}
                     </div>
-                    <p className="text-[10px] font-bold text-gray-400">Press Enter to save · Escape to cancel</p>
+                    <p className="text-[9px] font-bold text-gray-400">Press Enter to save · Escape to cancel</p>
                   </div>
                 )}
               </div>
             )}
 
             {/* Big net salary */}
-            <div className="bg-gradient-to-br from-slate-50 to-indigo-50 rounded-2xl p-6 border border-indigo-100 text-center">
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Net Salary This Month</p>
+            <div className="bg-gradient-to-br from-slate-50 to-indigo-50 rounded-xl p-4 border border-indigo-100 text-center">
+              <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.25em] mb-0.5">Net Salary This Month</p>
               <p className={`font-black leading-none ${payroll.totalDeduction > 0 ? 'text-orange-600' : 'text-emerald-600'}`}
-                style={{ fontSize: 'clamp(2.5rem, 7vw, 4rem)' }}>
+                style={{ fontSize: 'clamp(2rem, 5vw, 3rem)' }}>
                 ₹{payroll.netSalary.toLocaleString('en-IN')}
               </p>
               {payroll.totalDeduction > 0 && (
-                <p className="text-rose-500 font-bold text-sm mt-2">
+                <p className="text-rose-500 font-bold text-xs mt-1">
                   ₹{Math.round(payroll.totalDeduction).toLocaleString('en-IN')} deducted
                 </p>
               )}
             </div>
 
             {/* Salary Breakdown Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Base Salary</p>
-                <p className="text-gray-900 font-black text-xl">₹{payroll.baseSalary.toLocaleString('en-IN')}</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Base Salary</p>
+                <p className="text-gray-900 font-black text-lg">₹{payroll.baseSalary.toLocaleString('en-IN')}</p>
               </div>
-              <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Daily Rate</p>
-                <p className="text-gray-900 font-black text-xl">₹{Math.round(payroll.dailyRate).toLocaleString('en-IN')}</p>
-                <p className="text-gray-400 text-[10px] font-bold">÷ {WORKING_DAYS_PER_MONTH} working days</p>
+              <div className="bg-white border border-gray-100 rounded-xl p-3 shadow-sm">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Daily Rate</p>
+                <p className="text-gray-900 font-black text-lg">₹{Math.round(payroll.dailyRate).toLocaleString('en-IN')}</p>
+                <p className="text-gray-400 text-[9px] font-bold">÷ {WORKING_DAYS_PER_MONTH} days</p>
               </div>
-              <div className="bg-white border border-orange-100 rounded-2xl p-4 shadow-sm">
-                <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">⏰ Late Days</p>
-                <p className="text-orange-600 font-black text-xl">{payroll.lateDays} days</p>
-                <p className="text-gray-400 text-[10px] font-bold">Every 2 lates = 1 day cut</p>
+              <div className="bg-white border border-orange-100 rounded-xl p-3 shadow-sm">
+                <p className="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-0.5">⏰ Late Days</p>
+                <p className="text-orange-600 font-black text-lg">{payroll.lateDays} days</p>
+                <p className="text-gray-400 text-[9px] font-bold">2 lates = 1 day cut</p>
               </div>
-              <div className="bg-white border border-rose-100 rounded-2xl p-4 shadow-sm">
-                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1">✂️ Days Cut</p>
-                <p className="text-rose-600 font-black text-xl">{payroll.salaryCutDays} days</p>
-                <p className="text-gray-400 text-[10px] font-bold">= ₹{Math.round(payroll.lateDeduction).toLocaleString('en-IN')} deducted</p>
+              <div className="bg-white border border-rose-100 rounded-xl p-3 shadow-sm">
+                <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest mb-0.5">✂️ Days Cut</p>
+                <p className="text-rose-600 font-black text-lg">{payroll.salaryCutDays} days</p>
+                <p className="text-gray-400 text-[9px] font-bold">= ₹{Math.round(payroll.lateDeduction).toLocaleString('en-IN')}</p>
               </div>
               {payroll.halfDays > 0 && (
-                <div className="bg-white border border-amber-100 rounded-2xl p-4 shadow-sm">
-                  <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">🌓 Half Days</p>
-                  <p className="text-amber-600 font-black text-xl">{payroll.halfDays} days</p>
-                  <p className="text-gray-400 text-[10px] font-bold">= ₹{Math.round(payroll.halfDayDeduction).toLocaleString('en-IN')} deducted</p>
+                <div className="bg-white border border-amber-100 rounded-xl p-3 shadow-sm">
+                  <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-0.5">🌓 Half Days</p>
+                  <p className="text-amber-600 font-black text-lg">{payroll.halfDays} days</p>
+                  <p className="text-gray-400 text-[9px] font-bold">= ₹{Math.round(payroll.halfDayDeduction).toLocaleString('en-IN')}</p>
                 </div>
               )}
-              <div className="bg-white border border-emerald-100 rounded-2xl p-4 shadow-sm">
-                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">✅ Present Days</p>
-                <p className="text-emerald-600 font-black text-xl">{payroll.presentDays} days</p>
+              <div className="bg-white border border-emerald-100 rounded-xl p-3 shadow-sm">
+                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">✅ Present Days</p>
+                <p className="text-emerald-600 font-black text-lg">{payroll.presentDays} days</p>
               </div>
             </div>
 
             {/* Deduction Bar */}
             {payroll.baseSalary > 0 && (
-              <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-sm font-black text-gray-700 uppercase tracking-widest">Salary Breakdown</p>
-                  <p className="text-sm font-bold text-gray-400">
+              <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="text-xs font-black text-gray-700 uppercase tracking-widest">Salary Breakdown</p>
+                  <p className="text-xs font-bold text-gray-400">
                     {Math.round((payroll.totalDeduction / payroll.baseSalary) * 100)}% deducted
                   </p>
                 </div>
-                <div className="w-full h-5 rounded-full bg-gray-100 overflow-hidden flex">
+                <div className="w-full h-4 rounded-full bg-gray-100 overflow-hidden flex">
                   <div
-                    className="h-5 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-l-full transition-all duration-1000"
+                    className="h-4 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-l-full transition-all duration-1000"
                     style={{ width: `${Math.min(100, Math.round((payroll.netSalary / payroll.baseSalary) * 100))}%` }}
                   />
                   {payroll.totalDeduction > 0 && (
                     <div
-                      className="h-5 bg-gradient-to-r from-rose-400 to-rose-600 rounded-r-full transition-all duration-1000"
+                      className="h-4 bg-gradient-to-r from-rose-400 to-rose-600 rounded-r-full transition-all duration-1000"
                       style={{ width: `${Math.min(100, Math.round((payroll.totalDeduction / payroll.baseSalary) * 100))}%` }}
                     />
                   )}
                 </div>
-                <div className="flex justify-between mt-2 text-[10px] font-bold">
+                <div className="flex justify-between mt-1 text-[9px] font-bold">
                   <span className="text-emerald-600">Net ₹{payroll.netSalary.toLocaleString('en-IN')}</span>
                   {payroll.totalDeduction > 0 && (
                     <span className="text-rose-500">Cut ₹{Math.round(payroll.totalDeduction).toLocaleString('en-IN')}</span>
@@ -363,9 +364,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
             )}
 
             {/* Deduction Rule Note */}
-            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
-              <p className="text-amber-800 text-xs font-black uppercase tracking-widest mb-1">📋 Deduction Rule</p>
-              <p className="text-amber-700 text-sm font-bold">
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+              <p className="text-amber-800 text-[10px] font-black uppercase tracking-widest mb-0.5">📋 Deduction Rule</p>
+              <p className="text-amber-700 text-xs font-bold">
                 Every <span className="text-amber-900">2 late days</span> = <span className="text-red-700">1 day salary deducted</span>.
                 Half-days count as 0.5 day deduction.
               </p>
@@ -375,28 +376,28 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
 
         {/* ── INCENTIVE TAB ── */}
         {activeTab === 'incentive' && (
-          <div className="p-6 space-y-5">
+          <div className="p-5 space-y-4">
             {/* Personal Target Progress */}
             {personalTarget > 0 && (
-              <div className="space-y-3">
-                <p className="text-xs font-black text-gray-500 uppercase tracking-widest">👤 Personal Target</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-indigo-50 rounded-2xl p-4 border border-indigo-100">
-                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Target</p>
-                    <p className="text-indigo-700 font-black text-lg">₹{personalTarget.toLocaleString('en-IN')}</p>
+              <div className="space-y-2.5">
+                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">👤 Personal Target</p>
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="bg-indigo-50 rounded-xl p-3 border border-indigo-100">
+                    <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-0.5">Target</p>
+                    <p className="text-indigo-700 font-black text-base">₹{personalTarget.toLocaleString('en-IN')}</p>
                   </div>
-                  <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
-                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Achieved</p>
-                    <p className="text-emerald-700 font-black text-lg">₹{mySales.toLocaleString('en-IN')}</p>
+                  <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                    <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">Achieved</p>
+                    <p className="text-emerald-700 font-black text-base">₹{mySales.toLocaleString('en-IN')}</p>
                   </div>
-                  <div className={`rounded-2xl p-4 border ${personalPercent >= 100 ? 'bg-emerald-50 border-emerald-100' : 'bg-orange-50 border-orange-100'}`}>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Progress</p>
-                    <p className={`font-black text-lg ${personalPercent >= 100 ? 'text-emerald-700' : 'text-orange-600'}`}>{personalPercent}%</p>
+                  <div className={`rounded-xl p-3 border ${personalPercent >= 100 ? 'bg-emerald-50 border-emerald-100' : 'bg-orange-50 border-orange-100'}`}>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Progress</p>
+                    <p className={`font-black text-base ${personalPercent >= 100 ? 'text-emerald-700' : 'text-orange-600'}`}>{personalPercent}%</p>
                   </div>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
                   <div
-                    className={`h-3 rounded-full transition-all duration-1000 ${personalPercent >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-purple-600'}`}
+                    className={`h-2 rounded-full transition-all duration-1000 ${personalPercent >= 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-purple-600'}`}
                     style={{ width: `${personalPercent}%` }}
                   />
                 </div>
@@ -405,11 +406,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
 
             {/* Special Target */}
             {specialTarget ? (
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-black text-gray-500 uppercase tracking-widest">⚡ Special Target: {specialTarget.name}</p>
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">⚡ Special Target: {specialTarget.name}</p>
                   {daysLeft !== null && (
-                    <span className={`text-xs font-black px-3 py-1 rounded-full ${
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
                       isExpired ? 'bg-gray-100 text-gray-500' :
                       daysLeft === 0 ? 'bg-red-100 text-red-700' :
                       daysLeft <= 2 ? 'bg-orange-100 text-orange-700 animate-pulse' :
@@ -421,40 +422,40 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
                 </div>
 
                 {specialTarget.description && (
-                  <p className="text-gray-500 text-sm font-medium">{specialTarget.description}</p>
+                  <p className="text-gray-500 text-xs font-medium">{specialTarget.description}</p>
                 )}
 
                 {/* Special Progress */}
-                <div className="relative bg-gradient-to-br from-rose-500 to-orange-500 rounded-2xl p-6 text-white overflow-hidden">
+                <div className="relative bg-gradient-to-br from-rose-500 to-orange-500 rounded-xl p-4 text-white overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
                   <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start mb-2.5">
                       <div>
-                        <p className="text-rose-200 text-[10px] font-black uppercase tracking-widest mb-1">Your Sales</p>
-                        <p className="text-white font-black text-2xl">₹{mySales.toLocaleString('en-IN')}</p>
+                        <p className="text-rose-200 text-[9px] font-black uppercase tracking-widest mb-0.5">Your Sales</p>
+                        <p className="text-white font-black text-xl">₹{mySales.toLocaleString('en-IN')}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-rose-200 text-[10px] font-black uppercase tracking-widest mb-1">Campaign Target</p>
-                        <p className="text-white font-black text-2xl">₹{specialTarget.targetAmount.toLocaleString('en-IN')}</p>
+                        <p className="text-rose-200 text-[9px] font-black uppercase tracking-widest mb-0.5">Campaign Target</p>
+                        <p className="text-white font-black text-xl">₹{specialTarget.targetAmount.toLocaleString('en-IN')}</p>
                       </div>
                     </div>
-                    <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
+                    <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
                       <div
-                        className={`h-3 rounded-full transition-all duration-1000 ${specialPercent >= 100 ? 'bg-emerald-400' : 'bg-yellow-300'}`}
+                        className={`h-2 rounded-full transition-all duration-1000 ${specialPercent >= 100 ? 'bg-emerald-400' : 'bg-yellow-300'}`}
                         style={{ width: `${specialPercent}%` }}
                       />
                     </div>
-                    <p className="text-rose-200 text-right text-xs font-bold mt-1">{specialPercent}% achieved</p>
+                    <p className="text-rose-200 text-right text-[10px] font-bold mt-1">{specialPercent}% achieved</p>
                   </div>
                 </div>
 
                 {/* Incentive Tiers */}
                 {tiers.length > 0 && (
-                  <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-                    <div className="bg-amber-50 px-5 py-3 border-b border-amber-100">
-                      <p className="text-xs font-black text-amber-800 uppercase tracking-widest">💰 Incentive Slabs</p>
+                  <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                    <div className="bg-amber-50 px-4 py-2.5 border-b border-amber-100">
+                      <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest">💰 Incentive Slabs</p>
                     </div>
-                    <div className="p-4 space-y-2">
+                    <div className="p-3 space-y-2">
                       {[...tiers]
                         .sort((a, b) => a.salesAmount - b.salesAmount)
                         .map((tier, i) => {
@@ -463,7 +464,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
                           return (
                             <div
                               key={i}
-                              className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                              className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${
                                 isCurrent
                                   ? 'bg-emerald-50 border-emerald-300 shadow-sm'
                                   : achieved
@@ -471,26 +472,26 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
                                   : 'bg-gray-50 border-gray-100 opacity-60'
                               }`}
                             >
-                              <div className="flex items-center space-x-3">
-                                <span className="text-lg">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-base">
                                   {isCurrent ? '🏆' : achieved ? '✅' : '🔒'}
                                 </span>
                                 <div>
-                                  <p className={`font-black text-sm ${achieved ? 'text-gray-900' : 'text-gray-400'}`}>
+                                  <p className={`font-black text-xs ${achieved ? 'text-gray-900' : 'text-gray-400'}`}>
                                     ₹{tier.salesAmount.toLocaleString('en-IN')} sales
                                   </p>
                                   {!achieved && (
-                                    <p className="text-[10px] font-bold text-gray-400">
-                                      ₹{(tier.salesAmount - mySales).toLocaleString('en-IN')} more to unlock
+                                    <p className="text-[9px] font-bold text-gray-400">
+                                      ₹{(tier.salesAmount - mySales).toLocaleString('en-IN')} more
                                     </p>
                                   )}
                                 </div>
                               </div>
                               <div className="text-right">
-                                <p className={`font-black text-base ${isCurrent ? 'text-emerald-600' : achieved ? 'text-emerald-500' : 'text-gray-400'}`}>
+                                <p className={`font-black text-sm ${isCurrent ? 'text-emerald-600' : achieved ? 'text-emerald-500' : 'text-gray-400'}`}>
                                   +₹{tier.bonus.toLocaleString('en-IN')}
                                 </p>
-                                <p className="text-[10px] font-bold text-gray-400">bonus</p>
+                                <p className="text-[9px] font-bold text-gray-400">bonus</p>
                               </div>
                             </div>
                           );
@@ -498,19 +499,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
                     </div>
 
                     {/* Bonus Earned Summary */}
-                    <div className={`p-4 border-t ${bonusEarned > 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}>
+                    <div className={`p-3 border-t ${bonusEarned > 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}>
                       <div className="flex justify-between items-center">
-                        <p className={`font-black text-sm uppercase tracking-widest ${bonusEarned > 0 ? 'text-emerald-700' : 'text-gray-400'}`}>
+                        <p className={`font-black text-[10px] uppercase tracking-widest ${bonusEarned > 0 ? 'text-emerald-700' : 'text-gray-400'}`}>
                           {bonusEarned > 0 ? '🎉 Bonus Earned' : '⏳ No Bonus Yet'}
                         </p>
-                        <p className={`font-black text-2xl ${bonusEarned > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>
+                        <p className={`font-black text-xl ${bonusEarned > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>
                           {bonusEarned > 0 ? `+₹${bonusEarned.toLocaleString('en-IN')}` : '₹0'}
                         </p>
                       </div>
                       {nextTier && (
-                        <p className="text-xs font-bold text-gray-500 mt-2">
-                          Next tier: Sell ₹{nextTier.salesAmount.toLocaleString('en-IN')} → earn ₹{nextTier.bonus.toLocaleString('en-IN')} bonus
-                          (₹{(nextTier.salesAmount - mySales).toLocaleString('en-IN')} more needed)
+                        <p className="text-[10px] font-bold text-gray-500 mt-1.5">
+                          Next: Sell ₹{nextTier.salesAmount.toLocaleString('en-IN')} → +₹{nextTier.bonus.toLocaleString('en-IN')}
+                          (₹{(nextTier.salesAmount - mySales).toLocaleString('en-IN')} more)
                         </p>
                       )}
                     </div>
@@ -518,16 +519,17 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
                 )}
               </div>
             ) : (
-              <div className="text-center py-12">
-                <p className="text-4xl mb-3">⚡</p>
-                <p className="text-gray-500 font-bold">No Special Target active</p>
-                <p className="text-gray-400 text-sm font-medium">Admin can set one from the Admin Panel → Monthly Goals</p>
+              <div className="text-center py-8">
+                <p className="text-3xl mb-2">⚡</p>
+                <p className="text-gray-500 font-bold text-sm">No Special Target active</p>
+                <p className="text-gray-400 text-xs font-medium">Admin can set one from Admin Panel → Monthly Goals</p>
               </div>
             )}
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
