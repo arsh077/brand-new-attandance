@@ -35,8 +35,8 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
   }, [attendance]);
 
   useEffect(() => {
-    // Calculate live attendance data
-    const today = new Date().toISOString().split('T')[0];
+    // Calculate live attendance data using local date
+    const today = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${String(currentTime.getDate()).padStart(2, '0')}`;
     const todayAttendance = attendance.filter(a => a.date === today);
     const lateThresholdMinutes = timeStringToMinutes(lateThreshold);
     const halfDayThresholdMinutes = timeStringToMinutes(halfDayThreshold);
