@@ -19,6 +19,7 @@ import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
 import Sales from './pages/Sales';
 import Settings from './pages/Settings';
+import EmployeePayroll from './pages/EmployeePayroll';
 import NotificationBell from './components/NotificationBell';
 import BirthdayPopup from './components/BirthdayPopup';
 import FestivalPopup from './components/FestivalPopup';
@@ -588,6 +589,13 @@ const App: React.FC = () => {
             console.log('Monthly goals updated:', goals);
             await firebaseTargetService.updateMonthlyGoals(goals);
           }}
+        />;
+      case 'payroll':
+        return <EmployeePayroll
+          currentUser={currentUser}
+          employees={employees}
+          attendance={attendance}
+          monthlyGoals={monthlyGoals}
         />;
       case 'settings':
         return <Settings currentUser={currentUser} />;

@@ -490,34 +490,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
                     specialTarget: {
                       name: e.target.value,
                       targetAmount: editGoals.specialTarget?.targetAmount || 0,
-                      description: editGoals.specialTarget?.description || ''
+                      description: editGoals.specialTarget?.description || '',
+                      tiers: editGoals.specialTarget?.tiers || [],
+                      timePeriodDays: editGoals.specialTarget?.timePeriodDays || 1,
+                      startDate: editGoals.specialTarget?.startDate || new Date().toISOString().split('T')[0],
                     }
                   })}
                   className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
                 />
-
-                {/* Special Target Amount */}
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-black text-2xl">₹</span>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    min="0"
-                    value={editGoals.specialTarget?.targetAmount || ''}
-                    onChange={(e) => setEditGoals({
-                      ...editGoals,
-                      specialTarget: {
-                        name: editGoals.specialTarget?.name || '',
-                        targetAmount: Number(e.target.value),
-                        description: editGoals.specialTarget?.description || ''
-                      }
-                    })}
-                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl pl-12 pr-4 py-4 font-black text-gray-900 text-3xl focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
-                  />
-                </div>
-                {(editGoals.specialTarget?.targetAmount || 0) > 0 && (
-                  <p className="text-rose-600 font-black text-lg">= ₹{(editGoals.specialTarget!.targetAmount).toLocaleString('en-IN')}</p>
-                )}
 
                 {/* Special Target Description */}
                 <input
@@ -529,11 +509,209 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
                     specialTarget: {
                       name: editGoals.specialTarget?.name || '',
                       targetAmount: editGoals.specialTarget?.targetAmount || 0,
-                      description: e.target.value
+                      description: e.target.value,
+                      tiers: editGoals.specialTarget?.tiers || [],
+                      timePeriodDays: editGoals.specialTarget?.timePeriodDays || 1,
+                      startDate: editGoals.specialTarget?.startDate || new Date().toISOString().split('T')[0],
                     }
                   })}
                   className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
                 />
+
+                {/* Time Period + Start Date Row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-1">⏱ Duration (Days)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="90"
+                      placeholder="e.g. 3"
+                      value={editGoals.specialTarget?.timePeriodDays || ''}
+                      onChange={(e) => {
+                        const days = Number(e.target.value);
+                        const start = editGoals.specialTarget?.startDate || new Date().toISOString().split('T')[0];
+                        const endDateObj = new Date(start);
+                        endDateObj.setDate(endDateObj.getDate() + days - 1);
+                        const end = endDateObj.toISOString().split('T')[0];
+                        setEditGoals({
+                          ...editGoals,
+                          specialTarget: {
+                            name: editGoals.specialTarget?.name || '',
+                            targetAmount: editGoals.specialTarget?.targetAmount || 0,
+                            description: editGoals.specialTarget?.description || '',
+                            tiers: editGoals.specialTarget?.tiers || [],
+                            timePeriodDays: days,
+                            startDate: start,
+                            endDate: end,
+                          }
+                        });
+                      }}
+                      className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 font-black text-gray-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-1">📅 Start Date</label>
+                    <input
+                      type="date"
+                      value={editGoals.specialTarget?.startDate || new Date().toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        const start = e.target.value;
+                        const days = editGoals.specialTarget?.timePeriodDays || 1;
+                        const endDateObj = new Date(start);
+                        endDateObj.setDate(endDateObj.getDate() + days - 1);
+                        const end = endDateObj.toISOString().split('T')[0];
+                        setEditGoals({
+                          ...editGoals,
+                          specialTarget: {
+                            name: editGoals.specialTarget?.name || '',
+                            targetAmount: editGoals.specialTarget?.targetAmount || 0,
+                            description: editGoals.specialTarget?.description || '',
+                            tiers: editGoals.specialTarget?.tiers || [],
+                            timePeriodDays: days,
+                            startDate: start,
+                            endDate: end,
+                          }
+                        });
+                      }}
+                      className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                    />
+                  </div>
+                </div>
+                {editGoals.specialTarget?.startDate && editGoals.specialTarget?.timePeriodDays && (
+                  <p className="text-rose-600 font-bold text-sm">
+                    📅 Campaign runs: {new Date(editGoals.specialTarget.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    {' → '}
+                    {new Date(editGoals.specialTarget.endDate || editGoals.specialTarget.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {' '}({editGoals.specialTarget.timePeriodDays} {editGoals.specialTarget.timePeriodDays === 1 ? 'day' : 'days'})
+                  </p>
+                )}
+
+                {/* ━━━ TIERED INCENTIVE SLABS ━━━ */}
+                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-sm font-black text-amber-800 uppercase tracking-widest">💰 Incentive Slabs (Tiers)</p>
+                      <p className="text-amber-600 text-xs font-bold mt-0.5">Individual sales → bonus amount. e.g. ₹9000 sale = ₹600 bonus</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const current = editGoals.specialTarget?.tiers || [];
+                        setEditGoals({
+                          ...editGoals,
+                          specialTarget: {
+                            name: editGoals.specialTarget?.name || '',
+                            targetAmount: editGoals.specialTarget?.targetAmount || 0,
+                            description: editGoals.specialTarget?.description || '',
+                            timePeriodDays: editGoals.specialTarget?.timePeriodDays || 1,
+                            startDate: editGoals.specialTarget?.startDate || new Date().toISOString().split('T')[0],
+                            endDate: editGoals.specialTarget?.endDate,
+                            tiers: [...current, { salesAmount: 0, bonus: 0 }]
+                          }
+                        });
+                      }}
+                      className="bg-amber-500 text-white text-xs font-black px-3 py-1.5 rounded-xl hover:bg-amber-600"
+                    >
+                      + Add Slab
+                    </button>
+                  </div>
+
+                  {(editGoals.specialTarget?.tiers || []).length === 0 && (
+                    <p className="text-amber-500 text-xs font-bold text-center py-2">No slabs added yet. Click "+ Add Slab" to create incentive tiers.</p>
+                  )}
+
+                  <div className="space-y-2">
+                    {(editGoals.specialTarget?.tiers || []).map((tier, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-white rounded-xl p-3 border border-amber-100">
+                        <span className="text-xs font-black text-amber-700 w-16 shrink-0">Slab {idx + 1}</span>
+                        <div className="flex items-center gap-1 flex-1">
+                          <span className="text-gray-500 text-sm font-bold">₹</span>
+                          <input
+                            type="number"
+                            placeholder="Sales amt"
+                            value={tier.salesAmount || ''}
+                            min="0"
+                            onChange={(e) => {
+                              const newTiers = [...(editGoals.specialTarget?.tiers || [])];
+                              newTiers[idx] = { ...newTiers[idx], salesAmount: Number(e.target.value) };
+                              setEditGoals({ ...editGoals, specialTarget: { ...editGoals.specialTarget!, tiers: newTiers } });
+                            }}
+                            className="flex-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-sm font-black text-gray-900 focus:outline-none focus:border-rose-300 min-w-0"
+                          />
+                        </div>
+                        <span className="text-gray-400 font-bold text-sm shrink-0">→</span>
+                        <div className="flex items-center gap-1 flex-1">
+                          <span className="text-emerald-600 text-sm font-bold">₹</span>
+                          <input
+                            type="number"
+                            placeholder="Bonus"
+                            value={tier.bonus || ''}
+                            min="0"
+                            onChange={(e) => {
+                              const newTiers = [...(editGoals.specialTarget?.tiers || [])];
+                              newTiers[idx] = { ...newTiers[idx], bonus: Number(e.target.value) };
+                              setEditGoals({ ...editGoals, specialTarget: { ...editGoals.specialTarget!, tiers: newTiers } });
+                            }}
+                            className="flex-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1.5 text-sm font-black text-emerald-700 focus:outline-none focus:border-emerald-300 min-w-0"
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            const newTiers = (editGoals.specialTarget?.tiers || []).filter((_, i) => i !== idx);
+                            setEditGoals({ ...editGoals, specialTarget: { ...editGoals.specialTarget!, tiers: newTiers } });
+                          }}
+                          className="text-red-400 hover:text-red-600 font-black text-base shrink-0 w-6 h-6 flex items-center justify-center"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Slabs Preview */}
+                  {(editGoals.specialTarget?.tiers || []).filter(t => t.salesAmount > 0 && t.bonus > 0).length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-amber-200">
+                      <p className="text-xs font-black text-amber-700 uppercase tracking-widest mb-2">📊 Incentive Plan Preview:</p>
+                      <div className="space-y-1">
+                        {[...( editGoals.specialTarget?.tiers || [])]
+                          .filter(t => t.salesAmount > 0 && t.bonus > 0)
+                          .sort((a, b) => a.salesAmount - b.salesAmount)
+                          .map((t, i) => (
+                            <div key={i} className="flex justify-between text-xs font-bold">
+                              <span className="text-amber-700">₹{t.salesAmount.toLocaleString('en-IN')} sale</span>
+                              <span className="text-emerald-700">→ ₹{t.bonus.toLocaleString('en-IN')} bonus</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Special Target Amount (top-level / max) */}
+                <div>
+                  <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-1">🏆 Top Target Amount (highest slab)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-black text-2xl">₹</span>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      min="0"
+                      value={editGoals.specialTarget?.targetAmount || ''}
+                      onChange={(e) => setEditGoals({
+                        ...editGoals,
+                        specialTarget: {
+                          ...editGoals.specialTarget!,
+                          name: editGoals.specialTarget?.name || '',
+                          targetAmount: Number(e.target.value),
+                        }
+                      })}
+                      className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl pl-12 pr-4 py-4 font-black text-gray-900 text-3xl focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+                    />
+                  </div>
+                  {(editGoals.specialTarget?.targetAmount || 0) > 0 && (
+                    <p className="text-rose-600 font-black text-lg mt-1">= ₹{(editGoals.specialTarget!.targetAmount).toLocaleString('en-IN')}</p>
+                  )}
+                </div>
 
                 {/* Special Preview */}
                 {editGoals.specialTarget && editGoals.specialTarget.name && (editGoals.specialTarget.targetAmount || 0) > 0 && (
@@ -545,6 +723,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
                       <p className="font-black text-4xl mb-1">₹{(editGoals.specialTarget.targetAmount).toLocaleString('en-IN')}</p>
                       {editGoals.specialTarget.description && (
                         <p className="text-rose-200 text-sm font-bold">{editGoals.specialTarget.description}</p>
+                      )}
+                      {editGoals.specialTarget.timePeriodDays && (
+                        <p className="text-rose-200 text-xs font-bold mt-2">⏱ {editGoals.specialTarget.timePeriodDays} day campaign</p>
                       )}
                     </div>
                   </div>

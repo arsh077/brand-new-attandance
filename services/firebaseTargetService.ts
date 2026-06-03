@@ -9,11 +9,22 @@ export interface EmployeeOfMonth {
     department: string;
 }
 
+// A single slab in a tiered incentive plan
+// e.g. { salesAmount: 9000, bonus: 600 } means "if you sell ₹9000, you get ₹600 bonus"
+export interface IncentiveTier {
+    salesAmount: number;  // minimum sales to unlock this bonus slab
+    bonus: number;        // bonus amount in ₹ for hitting this slab
+}
+
 // A special/bonus target separate from the regular monthly target
 export interface SpecialTarget {
-    name: string;           // e.g. "Diwali Drive", "Q2 Bonus"
-    targetAmount: number;   // special target amount in ₹
-    description?: string;   // optional description
+    name: string;             // e.g. "Diwali Drive", "Q2 Bonus"
+    targetAmount: number;     // top-level / highest special target amount in ₹
+    description?: string;     // optional description
+    tiers?: IncentiveTier[];  // tiered bonus slabs sorted ascending by salesAmount
+    timePeriodDays?: number;  // how many days this campaign runs
+    startDate?: string;       // YYYY-MM-DD start date
+    endDate?: string;         // YYYY-MM-DD end date (auto-derived from startDate + timePeriodDays)
 }
 
 export interface MonthlyGoals {
