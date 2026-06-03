@@ -360,7 +360,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                       const pct = target > 0 ? Math.min(100, Math.round((empSales / target) * 100)) : 0;
                       return { emp, empSales, target, pct };
                     })
-                    .sort((a, b) => b.pct - a.pct);
+                    .sort((a, b) => b.pct !== a.pct ? b.pct - a.pct : b.empSales - a.empSales);
 
                   if (raceData.length === 0) return (
                     <p className="text-center text-gray-400 font-bold py-4">No data yet this month</p>
@@ -401,7 +401,6 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                           <div className="flex items-center justify-between mb-1.5">
                             <p className={`font-black text-sm truncate ${isLeader ? 'text-amber-900' : 'text-gray-800'}`}>
                               {emp.name}
-                              {isLeader && <span className="ml-2 text-[10px] font-black text-amber-600 uppercase tracking-widest">LEADING</span>}
                             </p>
                             <div className="text-right ml-2 shrink-0">
                               <span className={`font-black text-sm ${pct >= 100 ? 'text-emerald-600' : pct >= 50 ? 'text-indigo-600' : 'text-rose-500'}`}>
@@ -416,8 +415,15 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                               style={{ width: `${pct}%` }}
                             />
                           </div>
-                          <div className="flex justify-between mt-1">
-                            <span className="text-[9px] font-bold text-gray-400">₹{empSales.toLocaleString('en-IN')}</span>
+                          <div className="flex items-center justify-between mt-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-bold text-gray-400">₹{empSales.toLocaleString('en-IN')}</span>
+                              {isLeader && (
+                                <span className="text-[9px] font-black text-amber-600 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                                  🏆 Leading
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[9px] font-bold text-gray-300">of ₹{target.toLocaleString('en-IN')}</span>
                           </div>
                         </div>
