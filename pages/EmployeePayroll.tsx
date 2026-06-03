@@ -102,13 +102,18 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ emp, attendance, monthlyGoa
       ? Math.min(100, Math.round((mySales / specialTarget.targetAmount) * 100))
       : 0;
 
-  // Countdown for special target campaign
-  const today = now.toISOString().split('T')[0];
+  // Countdown for special target campaign (timezone-independent)
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const endDate = specialTarget?.endDate || null;
-  const daysLeft = endDate
-    ? Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(today).getTime()) / 86400000))
-    : null;
-  const isExpired = endDate ? new Date(endDate) < new Date(today) : false;
+  const isExpired = endDate ? today > endDate : false;
+  const daysLeft = (() => {
+    if (!endDate) return null;
+    const endParts = endDate.split('-').map(Number);
+    const todayParts = today.split('-').map(Number);
+    const endUTC = Date.UTC(endParts[0], endParts[1] - 1, endParts[2]);
+    const todayUTC = Date.UTC(todayParts[0], todayParts[1] - 1, todayParts[2]);
+    return Math.max(0, Math.ceil((endUTC - todayUTC) / 86400000));
+  })();
 
   const initials = emp.name
     .split(' ')
@@ -545,15 +550,20 @@ const EmployeePayroll: React.FC<EmployeePayrollProps> = ({
   const yearMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const monthName = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
-  // Get active special target and calculate days left
+  // Get active special target and calculate days left (timezone-independent)
   const specialTarget = monthlyGoals?.specialTarget || null;
   const tiers = specialTarget?.tiers || [];
-  const today = now.toISOString().split('T')[0];
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const endDate = specialTarget?.endDate || null;
-  const daysLeft = endDate
-    ? Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(today).getTime()) / 86400000))
-    : null;
-  const isExpired = endDate ? new Date(endDate) < new Date(today) : false;
+  const isExpired = endDate ? today > endDate : false;
+  const daysLeft = (() => {
+    if (!endDate) return null;
+    const endParts = endDate.split('-').map(Number);
+    const todayParts = today.split('-').map(Number);
+    const endUTC = Date.UTC(endParts[0], endParts[1] - 1, endParts[2]);
+    const todayUTC = Date.UTC(todayParts[0], todayParts[1] - 1, todayParts[2]);
+    return Math.max(0, Math.ceil((endUTC - todayUTC) / 86400000));
+  })();
 
   // Local employees state so salary edits reflect instantly in cards
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
