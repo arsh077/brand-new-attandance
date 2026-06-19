@@ -86,13 +86,15 @@ const App: React.FC = () => {
       console.log('✅ Debug cache cleared!');
     }
 
-    // Sync employee data with authorized users - Version 5.0
-    const dataSyncDone = localStorage.getItem('data_sync_v5');
+    // Sync employee data with authorized users - Version 6.0 (added Alina Ishteyak)
+    const dataSyncDone = localStorage.getItem('data_sync_v6');
     if (!dataSyncDone) {
-      console.log('🔄 Syncing employee data with authorized users...');
+      console.log('🔄 Syncing employee data with authorized users (v6 — Alina added)...');
       // Reset employees to match only authorized users
       setEmployees(INITIAL_EMPLOYEES);
       localStorage.setItem('ls_employees', JSON.stringify(INITIAL_EMPLOYEES));
+      // Clear old sync flag so Firebase re-initializes with new employee list
+      localStorage.removeItem('firebase_initialized');
 
       // Clear any fake attendance data - get from localStorage to avoid dependency
       const currentAttendance = JSON.parse(localStorage.getItem('ls_attendance') || '[]');
@@ -110,8 +112,9 @@ const App: React.FC = () => {
       setLeaveRequests(realLeaves);
       localStorage.setItem('ls_leave_requests', JSON.stringify(realLeaves));
 
-      localStorage.setItem('data_sync_v5', 'true');
-      console.log('✅ Data sync complete! Only real users data retained.');
+      localStorage.setItem('data_sync_v5', 'true'); // keep old flag too
+      localStorage.setItem('data_sync_v6', 'true');
+      console.log('✅ Data sync v6 complete! Alina Ishteyak added to system.');
     }
   }, []);
 

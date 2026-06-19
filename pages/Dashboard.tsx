@@ -661,6 +661,119 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
             </div>
           )}
 
+          {/* ━━━ TARGET ACHIEVEMENT RACE — EMPLOYEE VIEW (Live Leaderboard) ━━━ */}
+          {(targetAmount > 0 || employees.some(e => e.personalTarget && e.personalTarget > 0)) && (
+            <div className="bg-white rounded-3xl border border-gray-200 shadow-lg overflow-hidden animate-slide-up">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">🏁 Target Achievement Race</h3>
+                  <p className="text-xs text-gray-400 font-bold mt-1">Who is leading in sales target — {monthName}</p>
+                </div>
+                <span className="text-xs font-black text-indigo-600 bg-indigo-100 px-3 py-1.5 rounded-full uppercase tracking-widest">Live 🔴</span>
+              </div>
+              <div className="p-6 space-y-4">
+                {(() => {
+                  const raceData = employees
+                    .filter(e => e.status === 'ACTIVE' || (e as any).status === undefined)
+                    .map(emp => {
+                      const empSales = salesByEmployee[emp.id] || 0;
+                      const target = emp.personalTarget || targetAmount;
+                      const pct = target > 0 ? Math.min(100, Math.round((empSales / target) * 100)) : 0;
+                      return { emp, empSales, target, pct };
+                    })
+                    .sort((a, b) => b.pct !== a.pct ? b.pct - a.pct : b.empSales - a.empSales);
+
+                  if (raceData.length === 0) return (
+                    <p className="text-center text-gray-400 font-bold py-4">No data yet this month</p>
+                  );
+
+                  return raceData.map(({ emp, empSales, target, pct }, rank) => {
+                    const initials = emp.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                    const isLeader = rank === 0;
+                    const isMe = emp.id === currentUser.id;
+                    const barColor = pct >= 100
+                      ? 'bg-gradient-to-r from-emerald-400 to-emerald-600'
+                      : pct >= 75
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600'
+                      : pct >= 50
+                      ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                      : 'bg-gradient-to-r from-rose-400 to-rose-500';
+
+                    return (
+                      <div key={emp.id} className={`flex items-center gap-4 p-3 rounded-2xl transition-all ${
+                        isMe
+                          ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-2 border-indigo-200 shadow-sm'
+                          : isLeader
+                          ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 shadow-sm'
+                          : 'hover:bg-gray-50'
+                      }`}>
+                        {/* Rank */}
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+                          rank === 0 ? 'bg-amber-400 text-white shadow-lg shadow-amber-100' :
+                          rank === 1 ? 'bg-gray-300 text-gray-700' :
+                          rank === 2 ? 'bg-orange-300 text-orange-800' :
+                          'bg-gray-100 text-gray-500'
+                        }`}>
+                          {rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `#${rank + 1}`}
+                        </div>
+
+                        {/* Avatar */}
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
+                          isMe
+                            ? 'bg-indigo-600 text-white border-2 border-indigo-300'
+                            : isLeader
+                            ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                            : 'bg-indigo-100 text-indigo-600 border border-indigo-100'
+                        }`}>
+                          {initials}
+                        </div>
+
+                        {/* Name + bar */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <p className={`font-black text-sm truncate ${isMe ? 'text-indigo-700' : isLeader ? 'text-amber-900' : 'text-gray-800'}`}>
+                                {emp.name}
+                              </p>
+                              {isMe && (
+                                <span className="text-[9px] font-black text-indigo-600 bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0">
+                                  You
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-right ml-2 shrink-0">
+                              <span className={`font-black text-sm ${pct >= 100 ? 'text-emerald-600' : pct >= 50 ? 'text-indigo-600' : 'text-rose-500'}`}>
+                                {pct}%
+                              </span>
+                            </div>
+                          </div>
+                          {/* Progress track */}
+                          <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-3 rounded-full transition-all duration-1000 ease-out ${barColor}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between mt-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[9px] font-bold text-gray-400">₹{empSales.toLocaleString('en-IN')}</span>
+                              {isLeader && (
+                                <span className="text-[9px] font-black text-amber-600 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                                  🏆 Leading
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[9px] font-bold text-gray-300">of ₹{target.toLocaleString('en-IN')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
+
           {/* Simple Clock In/Out Toggle for Employees */}
           <div className="bg-white rounded-3xl border border-gray-200 shadow-lg p-8 animate-slide-up">
             <div className="space-y-6">
