@@ -473,13 +473,10 @@ const App: React.FC = () => {
     console.log('✅ Employee update synced to Firebase');
   };
 
-  // Initialize Advanced Notification Listeners
+  // Cleanup notification service on unmount
   useEffect(() => {
-    if (currentUser) {
-      notificationService.initialize(currentUser.id, currentUser.role);
-    }
     return () => notificationService.cleanup();
-  }, [currentUser]);
+  }, []);
 
   if (!currentUser) {
     return <Login onLogin={handleLogin} />;

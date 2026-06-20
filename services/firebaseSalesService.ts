@@ -76,7 +76,10 @@ class FirebaseSalesService {
      */
     subscribeToMonthlySales(yearMonth: string, callback: (entries: SalesEntry[]) => void) {
         const startDate = `${yearMonth}-01`;
-        const endDate = `${yearMonth}-31`;
+        // Correctly compute the last day of the month (handles 28/29/30/31 day months)
+        const [year, month] = yearMonth.split('-').map(Number);
+        const lastDay = new Date(year, month, 0).getDate(); // Day 0 of next month = last day of current
+        const endDate = `${yearMonth}-${String(lastDay).padStart(2, '0')}`;
 
         const q = query(
             this.salesCollection,

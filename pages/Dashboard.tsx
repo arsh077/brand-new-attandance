@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserRole, Employee, AttendanceRecord, LeaveRequest, AttendanceStatus } from '../types';
 import DashboardStats from '../components/DashboardStats';
 import RealtimeAttendance from '../components/RealtimeAttendance';
-import BirthdayPopup from '../components/BirthdayPopup';
+// BirthdayPopup intentionally omitted here — rendered once in App.tsx
 import { MonthlyGoals } from '../services/firebaseTargetService';
 import { firebaseSalesService } from '../services/firebaseSalesService';
 
@@ -91,13 +91,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
 
   // Real-time attendance calculation (updates automatically from Firebase!)
   // CRITICAL: Only count TODAY's attendance, filter by exact date match
-  const todayAttendance = attendance.filter(a => {
-    const isTodayRecord = a.date === today;
-    if (isTodayRecord) {
-      console.log('📊 Today attendance record:', a.employeeName, a.date, a.clockIn, a.status);
-    }
-    return isTodayRecord;
-  });
+  const todayAttendance = attendance.filter(a => a.date === today);
 
   // Count only unique employees who clocked in TODAY
   const presentToday = todayAttendance.filter(a => a.clockIn && a.clockIn.trim() !== '').length;
@@ -194,8 +188,6 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
 
   return (
     <div className="animate-fade-in space-y-10 bg-white">
-      {/* Birthday Popup - Shows for all users */}
-      <BirthdayPopup employees={employees} />
 
       <div>
         <h2 className="text-3xl font-black text-gray-900 tracking-tight">Welcome Back, {currentUser.name}</h2>
@@ -598,7 +590,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
           {personalTargetAmount > 0 && (
             <div className="space-y-4 animate-slide-up">
               {/* Personal Target Header Card */}
-              <div className="relative bg-gradient-to-br from-emerald-600 via-teal-705 to-cyan-800 rounded-3xl p-10 text-white shadow-2xl shadow-emerald-100 overflow-hidden">
+              <div className="relative bg-gradient-to-br from-emerald-600 via-teal-700 to-cyan-800 rounded-3xl p-10 text-white shadow-2xl shadow-emerald-100 overflow-hidden">
                 {/* Background decoration */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
                 <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-white/5 rounded-full blur-2xl" />

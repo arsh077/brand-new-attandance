@@ -92,15 +92,15 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
   }, [employees, attendance, currentTime, lateThreshold, halfDayThreshold]);
 
   const parseTime = (timeStr: string): Date => {
-    const today = new Date();
+    const now = currentTime;
     const [time, period] = timeStr.split(' ');
     let [hours, minutes] = time.split(':').map(Number);
 
     if (period === 'PM' && hours !== 12) hours += 12;
     if (period === 'AM' && hours === 12) hours = 0;
 
-    today.setHours(hours, minutes, 0, 0);
-    return today;
+    // Create a new Date instead of mutating shared object
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
   };
 
   const timeStringToMinutes = (timeStr?: string): number | null => {
