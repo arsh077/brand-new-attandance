@@ -720,7 +720,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                           {initials}
                         </div>
 
-                        {/* Name + bar */}
+                        {/* Name + bar — Amount hidden for non-admin employees */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2">
@@ -748,14 +748,14 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                           </div>
                           <div className="flex items-center justify-between mt-1.5">
                             <div className="flex items-center gap-2">
-                              <span className="text-[9px] font-bold text-gray-400">₹{empSales.toLocaleString('en-IN')}</span>
+                              {/* Amount hidden — only admin can see sales figures */}
                               {isLeader && (
                                 <span className="text-[9px] font-black text-amber-600 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-widest">
                                   🏆 Leading
                                 </span>
                               )}
                             </div>
-                            <span className="text-[9px] font-bold text-gray-300">of ₹{target.toLocaleString('en-IN')}</span>
+                            {/* Target amount hidden for non-admin */}
                           </div>
                         </div>
                       </div>
