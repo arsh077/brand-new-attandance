@@ -2,14 +2,15 @@
 import React from 'react';
 import { UserRole, Employee, LeaveType } from './types';
 
-// Secure user credentials - Only these emails can login with correct passwords
+// Authorized user list — passwords are managed ONLY in Firebase Authentication
+// Do NOT store passwords here. Firebase Auth is the single source of truth.
 export const AUTHORIZED_USERS = [
-  { email: 'Info@legalsuccessindia.com', password: 'Legal@000', role: UserRole.ADMIN, name: 'Admin - Info' },
-  { email: 'lsikabir27@gmail.com', password: 'Legal@001', role: UserRole.EMPLOYEE, name: 'Kabir' },
-  { email: 'legalsuccessindia94@gmail.com', password: 'Legal@002', role: UserRole.EMPLOYEE, name: 'Sharfaraz' },
-  { email: 'lsinikhat@gmail.com', password: 'Legal@005', role: UserRole.EMPLOYEE, name: 'Nikhat' },
-  { email: 'sonia@legalsuccessindia.com', password: 'Legal@011', role: UserRole.EMPLOYEE, name: 'Sonia' },
-  { email: 'alina@legalsuccessindia.com', password: 'Legal@017', role: UserRole.EMPLOYEE, name: 'Alina Ishteyak' }
+  { email: 'Info@legalsuccessindia.com', role: UserRole.ADMIN, name: 'Admin - Info' },
+  { email: 'lsikabir27@gmail.com', role: UserRole.EMPLOYEE, name: 'Kabir' },
+  { email: 'legalsuccessindia94@gmail.com', role: UserRole.EMPLOYEE, name: 'Sharfaraz' },
+  { email: 'lsinikhat@gmail.com', role: UserRole.EMPLOYEE, name: 'Nikhat' },
+  { email: 'sonia@legalsuccessindia.com', role: UserRole.EMPLOYEE, name: 'Sonia' },
+  { email: 'alina@legalsuccessindia.com', role: UserRole.EMPLOYEE, name: 'Alina Ishteyak' }
 ];
 
 export const INITIAL_EMPLOYEES: Employee[] = [

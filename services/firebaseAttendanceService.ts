@@ -72,18 +72,81 @@ class FirebaseAttendanceService {
     }
 
     /**
+     * Start Break - Record break start time
+     */
+    async startBreak(attendanceId: string) {
+        try {
+            const attendanceRef = doc(db, 'attendance', attendanceId);
+            await updateDoc(attendanceRef, {
+                breakStart: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+            console.log('🔥 Firebase: Break started for ID:', attendanceId);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Firebase startBreak error:', error);
+            return { success: false, error };
+        }
+    }
+
+    /**
+     * End Break - Record break end time and accumulate duration
+     */
+    async endBreak(attendanceId: string, currentBreakStart: string, previousHistory: any[] = []) {
+        try {
+            const attendanceRef = doc(db, 'attendance', attendanceId);
+            const now = new Date();
+            const start = new Date(currentBreakStart);
+            const durationSeconds = Math.max(0, Math.floor((now.getTime() - start.getTime()) / 1000));
+
+            const newBreak = {
+                start: currentBreakStart,
+                end: now.toISOString(),
+                durationSeconds
+            };
+
+            const updatedHistory = [...previousHistory, newBreak];
+            const totalSeconds = updatedHistory.reduce((sum, b) => sum + (b.durationSeconds || 0), 0);
+            const totalMinutes = Math.round(totalSeconds / 60);
+
+            await updateDoc(attendanceRef, {
+                breakStart: null,
+                breakHistory: updatedHistory,
+                totalBreakMinutes: totalMinutes,
+                updatedAt: now.toISOString()
+            });
+
+            console.log('🔥 Firebase: Break ended for ID:', attendanceId, 'Duration:', durationSeconds, 'sec');
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Firebase endBreak error:', error);
+            return { success: false, error };
+        }
+    }
+
+
+    /**
      * Subscribe to real-time attendance updates
-     * This will automatically update whenever attendance data changes in Firestore
+     * Fetches last 90 days only for performance — sufficient for all views
      */
     subscribeToAttendance(callback: (attendance: any[]) => void) {
-        // Removed orderBy to avoid Firebase index requirement
-        const unsubscribe = onSnapshot(this.attendanceCollection, (snapshot) => {
+        // Only fetch attendance from last 90 days to limit Firestore reads
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 90);
+        const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`;
+
+        const q = query(
+            this.attendanceCollection,
+            where('date', '>=', cutoffStr)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
             const attendanceList = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
 
-            console.log('🔥 Firebase real-time update:', attendanceList.length, 'records');
+            console.log('🔥 Firebase real-time update:', attendanceList.length, 'records (last 90 days)');
             callback(attendanceList);
         }, (error) => {
             console.error('❌ Firebase attendance subscription error:', error);
@@ -91,6 +154,7 @@ class FirebaseAttendanceService {
 
         return unsubscribe; // Call this function to stop listening
     }
+
 
     /**
      * Get today's attendance records

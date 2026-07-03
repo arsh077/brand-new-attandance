@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import { ICONS, AUTHORIZED_USERS } from '../constants';
+import { ICONS } from '../constants';
 import { firebaseAuthService } from '../services/firebaseAuthService';
 import { firebaseEmployeeService } from '../services/firebaseEmployeeService';
 
@@ -21,78 +21,43 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
 
     try {
-      // 1. Local Validation (Check against constants + Dynamic Admin Overrides)
-      const dynamicUsers = JSON.parse(localStorage.getItem('authorized_users_override') || '[]');
-      const allAuthorizedUsers = [...AUTHORIZED_USERS, ...dynamicUsers];
-
-      // Remove duplicates by email
-      const uniqueUsers = Array.from(new Map(allAuthorizedUsers.map(item => [item.email.toLowerCase(), item])).values());
-
-      const localUser = uniqueUsers.find(u =>
-        u.email.toLowerCase() === email.trim().toLowerCase() &&
-        u.password === password.trim()
-      );
-
-      if (localUser) {
-        // If local match found, verify if role matches selection
-        if (selectedRole && localUser.role !== selectedRole) {
-          throw new Error(`Your account is registered as ${localUser.role}, not ${selectedRole}.`);
-        }
-
-        // AUTO-REGISTRATION: Try to login to Firebase, if fails (user not found), then Register
-        console.log('🔥 Syncing Firebase Auth...');
-        const authResult = await firebaseAuthService.login(email.trim(), password.trim());
-
-        if (!authResult.success && (authResult.error?.includes('auth/invalid-credential') || authResult.error?.includes('auth/user-not-found'))) {
-          console.log('🔥 Firebase: User not found or invalid credential, ensuring registration...');
-          await firebaseAuthService.register(email.trim(), password.trim());
-        }
-
-        // Fetch full employee object to ensure we have the 'id'
-        const dbEmployee = await firebaseEmployeeService.getEmployeeByEmail(email.trim());
-
-        // Success! Proceed
-        onLogin(localUser.role, localUser.email, dbEmployee || undefined);
-        return;
-      }
-
-      // 2. Firebase Authentication (If local fails or for real database login)
+      // Step 1: Authenticate via Firebase Auth (single source of truth for passwords)
       const authResult = await firebaseAuthService.login(email.trim(), password.trim());
 
       if (!authResult.success || !authResult.user) {
         throw new Error(authResult.error || 'Invalid credentials');
       }
 
-      // 3. Final Fetch from DB to ensure role sync
+      // Step 2: Fetch employee profile from Firestore
       const employee = await firebaseEmployeeService.getEmployeeByEmail(email.trim());
       if (!employee) {
-        throw new Error('Employee record not found in system.');
+        await firebaseAuthService.logout();
+        throw new Error('Employee record not found. Please contact your administrator.');
       }
 
+      // Step 3: Validate role matches the selected role on login screen
       if (selectedRole && employee.role !== selectedRole) {
-        throw new Error(`Your account is registered as ${employee.role}, not ${selectedRole}.`);
+        await firebaseAuthService.logout();
+        throw new Error(`Your account is registered as ${employee.role}. Please select the correct role.`);
       }
 
+      // Step 4: Success
       onLogin(employee.role, employee.email, employee);
 
     } catch (err: any) {
-      console.error('Login failed:', err);
-      // Friendly error message
-      if (err.message.includes('auth/invalid-credential') || err.message.includes('invalid-email')) {
+      const msg: string = err.message || '';
+      if (msg.includes('auth/invalid-credential') || msg.includes('auth/wrong-password') || msg.includes('auth/user-not-found') || msg.includes('invalid-email')) {
         setError('Invalid email or password.');
-      } else if (err.message.includes('network-request-failed')) {
+      } else if (msg.includes('network-request-failed')) {
         setError('Network error. Check your internet connection.');
+      } else if (msg.includes('auth/too-many-requests')) {
+        setError('Too many failed attempts. Please try again later.');
       } else {
-        setError(err.message || 'Login failed. Please try again.');
+        setError(msg || 'Login failed. Please try again.');
       }
     } finally {
       setLoading(false);
     }
-  };
-
-  const getAuthorizedEmailsForRole = (role: UserRole) => {
-    const users = AUTHORIZED_USERS.filter(u => u.role === role);
-    return users.length > 0 ? users[0].email : 'No authorized users';
   };
 
   if (!selectedRole) {
@@ -198,8 +163,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
           <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
             <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-1">Authorized Access Only</p>
-            <p className="text-xs text-indigo-900 font-bold">Example: <span className="select-all font-black">{getAuthorizedEmailsForRole(selectedRole)}</span></p>
+            <p className="text-xs text-indigo-600 font-bold">Only registered employees can access this portal.</p>
           </div>
+
 
           {error && (
             <div className="p-4 bg-red-50 rounded-2xl border border-red-200 animate-pulse">

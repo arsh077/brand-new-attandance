@@ -7,7 +7,7 @@ import { firebaseLeaveService } from './services/firebaseLeaveService';
 import { firebaseEmployeeService } from './services/firebaseEmployeeService';
 import { firebaseSettingsService, SystemSettings, DEFAULT_SETTINGS } from './services/firebaseSettingsService';
 import { notificationService, Notification } from './services/notificationService';
-import { INITIAL_EMPLOYEES, AUTHORIZED_USERS } from './constants';
+import { INITIAL_EMPLOYEES } from './constants';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Attendance from './pages/Attendance';
@@ -27,8 +27,6 @@ import { firebaseTargetService, MonthlyGoals, DEFAULT_MONTHLY_GOALS } from './se
 import EmployeeOfMonthPopup from './components/EmployeeOfMonthPopup';
 
 const App: React.FC = () => {
-  console.log('🚀 [DEBUG] App component mounting/rendering...');
-
   const [employees, setEmployees] = useState<Employee[]>(() => {
     const saved = localStorage.getItem('ls_employees');
     return saved ? JSON.parse(saved) : INITIAL_EMPLOYEES;
@@ -313,23 +311,14 @@ const App: React.FC = () => {
     completeLogin(user, role, email);
   };
 
-  const completeLogin = (user: Employee, role: UserRole, email: string) => {
-    // Create auth token for session
-    const authUser = AUTHORIZED_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-    if (authUser) {
-      const token = btoa(`${authUser.email}:${authUser.password}`);
-      localStorage.setItem('auth_token', token);
-    }
-
+  const completeLogin = (user: Employee, _role: UserRole, _email: string) => {
     // Set user in localStorage for persistence
     localStorage.setItem('user', JSON.stringify(user));
 
     // Initialize notification service for this user
     notificationService.initialize(user.id, user.role);
-    console.log('🔔 Notification service initialized for:', user.name);
 
-    // Force update state
+    // Update state
     setCurrentUser(user);
     setActiveTab('dashboard');
   };
@@ -342,24 +331,23 @@ const App: React.FC = () => {
       // Small delay to let listeners cleanup
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Then clear state and localStorage
+      // Clear state and localStorage
       setCurrentUser(null);
       localStorage.removeItem('user');
-      localStorage.removeItem('auth_token');
       localStorage.removeItem('ls_employees');
       localStorage.removeItem('ls_attendance');
       localStorage.removeItem('ls_leave_requests');
       localStorage.removeItem('ls_notifications');
-      localStorage.removeItem('firebase_initialized'); // Clear this flag too
-      localStorage.removeItem('data_reset_feb_2026'); // Clear this flag too
-      localStorage.removeItem('debug_cache_cleared_v4'); // Clear this flag too
+      localStorage.removeItem('firebase_initialized');
+      localStorage.removeItem('data_reset_feb_2026');
+      localStorage.removeItem('debug_cache_cleared_v4');
 
       // Reset local state to initial values
       setEmployees(INITIAL_EMPLOYEES);
       setAttendance([]);
       setLeaveRequests([]);
       setNotifications([]);
-      setActiveTab('dashboard'); // Reset active tab
+      setActiveTab('dashboard');
     } catch (error) {
       console.error('Error during logout:', error);
       alert('Logout failed. Please try again.');
@@ -397,6 +385,11 @@ const App: React.FC = () => {
         // Clock Out
         console.log('🔴 Clocking out... (via Firebase)');
         const clockOutTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+        // Auto-end active break if they clock out while on break
+        if (existing.breakStart) {
+          await firebaseAttendanceService.endBreak(existing.id, existing.breakStart, existing.breakHistory || []);
+        }
 
         // Firebase update
         const result = await firebaseAttendanceService.clockOut(existing.id, clockOutTime);
@@ -513,14 +506,27 @@ const App: React.FC = () => {
             console.log('✅ Leave request submitted to Firebase');
           }}
           onAction={(id, s) => {
-            console.log('✅ Leave action:', id, s);
             const request = leaveRequests.find(r => r.id === id);
-            // Trigger events via Firebase
             if (request) {
               firebaseLeaveService.updateLeaveStatus(id, s);
-            }
 
-            console.log('✅ Leave action saved to Firebase');
+              // Deduct leave balance when approved
+              if (s === 'APPROVED') {
+                const emp = employees.find(e => e.id === request.employeeId);
+                if (emp) {
+                  const start = new Date(request.startDate);
+                  const end = new Date(request.endDate);
+                  const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                  const leaveType = request.type;
+                  const currentBalance = emp.leaveBalance?.[leaveType] ?? 0;
+                  const newBalance = Math.max(0, currentBalance - days);
+                  firebaseEmployeeService.updateEmployee({
+                    ...emp,
+                    leaveBalance: { ...emp.leaveBalance, [leaveType]: newBalance }
+                  });
+                }
+              }
+            }
           }}
         />;
       case 'analytics':

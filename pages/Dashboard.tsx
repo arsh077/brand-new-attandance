@@ -5,6 +5,7 @@ import RealtimeAttendance from '../components/RealtimeAttendance';
 // BirthdayPopup intentionally omitted here — rendered once in App.tsx
 import { MonthlyGoals } from '../services/firebaseTargetService';
 import { firebaseSalesService } from '../services/firebaseSalesService';
+import { firebaseAttendanceService } from '../services/firebaseAttendanceService';
 
 interface DashboardProps {
   role: UserRole;
@@ -151,6 +152,41 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
       setIsProcessing(false);
     }
   };
+
+  // Live ticking state to update break timers in real-time
+  const [ticker, setTicker] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTicker(t => t + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const [breakProcessing, setBreakProcessing] = useState(false);
+
+  const handleBreakToggle = async () => {
+    if (!userTodayAttendance) return;
+    setBreakProcessing(true);
+
+    try {
+      if (userTodayAttendance.breakStart) {
+        // End Break
+        await firebaseAttendanceService.endBreak(
+          userTodayAttendance.id,
+          userTodayAttendance.breakStart,
+          userTodayAttendance.breakHistory || []
+        );
+      } else {
+        // Start Break
+        await firebaseAttendanceService.startBreak(userTodayAttendance.id);
+      }
+    } catch (error) {
+      console.error('Error toggling break:', error);
+    } finally {
+      setBreakProcessing(false);
+    }
+  };
+
 
   const adminStats = [
     {
@@ -831,6 +867,107 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                   {isProcessing ? 'Processing...' : isClockedIn ? 'Currently Clocked In' : 'Ready to Clock In'}
                 </p>
               </div>
+
+              {/* Break Counter Section (Only shown when clocked in) */}
+              {isClockedIn && userTodayAttendance && (() => {
+                const previousBreakSeconds = (userTodayAttendance.breakHistory || []).reduce((sum, b) => sum + (b.durationSeconds || 0), 0);
+                const isOnBreak = !!userTodayAttendance.breakStart;
+                const currentBreakSeconds = userTodayAttendance.breakStart
+                  ? Math.max(0, Math.floor((Date.now() - new Date(userTodayAttendance.breakStart).getTime()) / 1000))
+                  : 0;
+                const totalBreakSeconds = previousBreakSeconds + currentBreakSeconds;
+                const breakLimitSeconds = 40 * 60; // 40 minutes
+                const hasExceededBreak = totalBreakSeconds > breakLimitSeconds;
+                const breakTimeRemaining = Math.max(0, breakLimitSeconds - totalBreakSeconds);
+                const breakTimeExceeded = Math.max(0, totalBreakSeconds - breakLimitSeconds);
+
+                const formatSeconds = (totalSecs: number) => {
+                  const mins = Math.floor(totalSecs / 60);
+                  const secs = totalSecs % 60;
+                  return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+                };
+
+                return (
+                  <div className="border-t border-gray-100 pt-6 mt-6 space-y-4">
+                    <div className="text-center">
+                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest">☕ Break Tracker</p>
+                      
+                      {/* Timer Display */}
+                      <div className="mt-2">
+                        {isOnBreak ? (
+                          hasExceededBreak ? (
+                            <div className="space-y-1">
+                              <p className="text-2xl font-black text-rose-600 animate-pulse">
+                                Exceeded: {formatSeconds(breakTimeExceeded)}
+                              </p>
+                              <p className="text-xs text-red-500 font-bold bg-red-50 px-3 py-1 rounded-full inline-block border border-red-150">
+                                ⚠️ Over Break Limit! (40m allowed)
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-1">
+                              <p className="text-2xl font-black text-indigo-600">
+                                Remaining: {formatSeconds(breakTimeRemaining)}
+                              </p>
+                              <p className="text-xs text-gray-500 font-medium animate-pulse">
+                                Active Break Timer
+                              </p>
+                            </div>
+                          )
+                        ) : (
+                          <div className="space-y-1">
+                            <p className="text-lg font-black text-gray-700">
+                              Today's Break: {formatSeconds(previousBreakSeconds)}
+                            </p>
+                            {previousBreakSeconds > breakLimitSeconds ? (
+                              <p className="text-xs text-rose-500 font-bold">
+                                ⚠️ Exceeded break limit by {formatSeconds(previousBreakSeconds - breakLimitSeconds)}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-gray-400 font-medium">
+                                Limit: 40 minutes per day
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Break Toggle Button */}
+                    <div className="flex justify-center">
+                      <button
+                        onClick={handleBreakToggle}
+                        disabled={breakProcessing}
+                        className={`w-48 py-3 rounded-2xl font-black text-white text-sm shadow-md transition-all duration-200 uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer ${breakProcessing
+                          ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                          : isOnBreak
+                            ? 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 hover:scale-105 active:scale-95 shadow-rose-100'
+                            : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 hover:scale-105 active:scale-95 shadow-indigo-100'
+                        }`}
+                      >
+                        {breakProcessing ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : isOnBreak ? (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H10a1 1 0 01-1-1v-4z" />
+                            </svg>
+                            End Break
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Start Break
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

@@ -48,6 +48,9 @@ export interface AttendanceRecord {
   clockIn: string;
   clockOut?: string;
   status: AttendanceStatus;
+  breakStart?: string | null;
+  breakHistory?: { start: string; end?: string; durationSeconds?: number }[];
+  totalBreakMinutes?: number;
 }
 
 export interface LeaveRequest {

@@ -4,7 +4,7 @@ import { UserRole } from '../types';
 
 export interface Notification {
   id: string;
-  type: 'CLOCK_IN' | 'CLOCK_OUT' | 'LEAVE_REQUEST' | 'LEAVE_APPROVED' | 'LEAVE_REJECTED';
+  type: 'CLOCK_IN' | 'CLOCK_OUT' | 'LEAVE_REQUEST' | 'LEAVE_APPROVED' | 'LEAVE_REJECTED' | 'ANNOUNCEMENT';
   title: string;
   message: string;
   timestamp: string;
@@ -130,7 +130,7 @@ class NotificationService {
         if (change.type === 'added') {
           const data = change.doc.data();
           this.broadcast({
-            type: 'LEAVE_APPROVED', // Re-using an existing type icon (Green/Happy) or we can add a new one
+            type: 'ANNOUNCEMENT',
             title: data.title,
             message: data.message,
             employeeName: 'System'
