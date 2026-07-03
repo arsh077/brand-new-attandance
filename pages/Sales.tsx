@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Employee, SalesEntry, UserRole } from '../types';
 import { firebaseSalesService } from '../services/firebaseSalesService';
+import { MonthlyGoals } from '../services/firebaseTargetService';
 
 interface SalesProps {
     currentUser: Employee;
     employees: Employee[];
+    monthlyGoals?: MonthlyGoals;
 }
 
 interface EntryForm {
@@ -12,11 +14,12 @@ interface EntryForm {
     clientName: string;
     amount: string;
     notes: string;
+    service: string; // Dynamic service target category selection
 }
 
-const BLANK_FORM: EntryForm = { clientName: '', amount: '', notes: '' };
+const BLANK_FORM: EntryForm = { clientName: '', amount: '', notes: '', service: 'General/Other' };
 
-const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
+const Sales: React.FC<SalesProps> = ({ currentUser, employees, monthlyGoals }) => {
     const isAdmin = currentUser.role === UserRole.ADMIN;
 
     // Current month state
@@ -60,6 +63,9 @@ const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
         ? employees.filter(e => e.status === 'ACTIVE')
         : employees.filter(e => e.id === currentUser.id);
 
+    const activeServices = (monthlyGoals?.serviceTargets || []).map(s => s.name);
+    const servicesList = activeServices.length > 0 ? [...activeServices, 'General/Other'] : ['Trademark', 'FSSAI', 'General/Other'];
+
     // Firebase real-time subscription
     useEffect(() => {
         setLoading(true);
@@ -100,7 +106,13 @@ const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
 
     // Start editing an existing entry
     const startEdit = (entry: SalesEntry) => {
-        setActiveForm({ id: entry.id, clientName: entry.clientName, amount: entry.amount.toString(), notes: entry.notes });
+        setActiveForm({
+            id: entry.id,
+            clientName: entry.clientName,
+            amount: entry.amount.toString(),
+            notes: entry.notes,
+            service: entry.service || 'General/Other'
+        });
     };
 
     // Daily limit for non-admin employees
@@ -130,7 +142,8 @@ const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
             await firebaseSalesService.updateSalesEntry(activeForm.id, {
                 clientName: activeForm.clientName.trim(),
                 amount: Number(activeForm.amount),
-                notes: activeForm.notes.trim()
+                notes: activeForm.notes.trim(),
+                service: activeForm.service
             });
         } else {
             // Add new
@@ -140,7 +153,8 @@ const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
                 date: modal.date,
                 clientName: activeForm.clientName.trim(),
                 amount: Number(activeForm.amount),
-                notes: activeForm.notes.trim()
+                notes: activeForm.notes.trim(),
+                service: activeForm.service
             });
         }
         setSaving(false);
@@ -166,7 +180,7 @@ const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
             const dayCells = days.map(day => {
                 const entries = getDayEntries(emp.id, day);
                 if (!entries.length) return '';
-                return entries.map(e => `₹${e.amount} - ${e.clientName}`).join(' | ');
+                return entries.map(e => `₹${e.amount} - ${e.clientName}${e.service ? ` (${e.service})` : ''}`).join(' | ');
             });
             return [emp.name, ...dayCells, `₹${getEmpTotal(emp.id).toLocaleString('en-IN')}`];
         });
@@ -378,7 +392,6 @@ const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
                                         {modalEntries.map(entry => (
                                             <div key={entry.id} className={`rounded-xl border-2 p-4 transition-all ${activeForm?.id === entry.id ? 'border-indigo-400 bg-indigo-50' : 'border-gray-100 bg-gray-50 hover:border-gray-200'}`}>
                                                 {activeForm?.id === entry.id ? (
-                                                    /* Edit form for this entry */
                                                     <div className="space-y-3">
                                                         <div className="grid grid-cols-2 gap-3">
                                                             <div>
@@ -406,16 +419,28 @@ const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
                                                                     />
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1">Notes</label>
-                                                            <input
-                                                                type="text"
-                                                                value={activeForm.notes}
-                                                                onChange={e => setActiveForm(f => f ? { ...f, notes: e.target.value } : f)}
-                                                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                                placeholder="Optional notes..."
-                                                            />
+                                                            <div>
+                                                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1">Service Type *</label>
+                                                                <select
+                                                                    value={activeForm.service}
+                                                                    onChange={e => setActiveForm(f => f ? { ...f, service: e.target.value } : f)}
+                                                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                                                >
+                                                                    {servicesList.map(s => (
+                                                                        <option key={s} value={s}>{s}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1">Notes</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={activeForm.notes}
+                                                                    onChange={e => setActiveForm(f => f ? { ...f, notes: e.target.value } : f)}
+                                                                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                                    placeholder="Optional notes..."
+                                                                />
+                                                            </div>
                                                         </div>
                                                         <div className="flex gap-2">
                                                             <button onClick={cancelForm} className="flex-1 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all">Cancel</button>
@@ -430,6 +455,7 @@ const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="font-black text-gray-900 text-sm truncate">{entry.clientName}</span>
+                                                                <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wider">{entry.service || 'General/Other'}</span>
                                                                 <span className="text-emerald-600 font-black text-sm flex-shrink-0">₹{entry.amount.toLocaleString('en-IN')}</span>
                                                             </div>
                                                             {entry.notes && <p className="text-gray-400 text-xs mt-0.5 truncate">{entry.notes}</p>}
@@ -497,15 +523,29 @@ const Sales: React.FC<SalesProps> = ({ currentUser, employees }) => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1">Notes / Message</label>
-                                        <input
-                                            type="text"
-                                            value={activeForm.notes}
-                                            onChange={e => setActiveForm(f => f ? { ...f, notes: e.target.value } : f)}
-                                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
-                                            placeholder="e.g. Trademark filing, consultation..."
-                                        />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1">Service Type *</label>
+                                            <select
+                                                value={activeForm.service}
+                                                onChange={e => setActiveForm(f => f ? { ...f, service: e.target.value } : f)}
+                                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                            >
+                                                {servicesList.map(s => (
+                                                    <option key={s} value={s}>{s}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1">Notes / Message</label>
+                                            <input
+                                                type="text"
+                                                value={activeForm.notes}
+                                                onChange={e => setActiveForm(f => f ? { ...f, notes: e.target.value } : f)}
+                                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                                                placeholder="e.g. Trademark filing, consultation..."
+                                            />
+                                        </div>
                                     </div>
                                     <div className="flex gap-2">
                                         <button onClick={cancelForm} className="flex-1 py-2 text-xs font-bold text-gray-600 bg-white rounded-lg hover:bg-gray-100 transition-all border border-gray-200">Cancel</button>

@@ -40,7 +40,7 @@ class FirebaseSalesService {
     /**
      * Update an existing sales entry
      */
-    async updateSalesEntry(entryId: string, updates: Partial<Pick<SalesEntry, 'clientName' | 'amount' | 'notes'>>) {
+    async updateSalesEntry(entryId: string, updates: Partial<Pick<SalesEntry, 'clientName' | 'amount' | 'notes' | 'service'>>) {
         try {
             const now = new Date().toISOString();
             await updateDoc(doc(db, 'sales', entryId), {

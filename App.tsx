@@ -544,6 +544,7 @@ const App: React.FC = () => {
         return <Sales
           currentUser={currentUser}
           employees={employees}
+          monthlyGoals={monthlyGoals}
         />;
       case 'employees':
         return <Employees

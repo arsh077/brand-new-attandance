@@ -749,6 +749,75 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
               </div>
             </div>
 
+            {/* ━━━ PER-SERVICE TARGETS SECTION ━━━ */}
+            <div className="border-t border-gray-100 pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <label className="block text-sm font-black text-gray-700 uppercase tracking-widest">💰 Per-Service Targets</label>
+                  <p className="text-gray-400 text-xs font-bold mt-1">Set separate targets for individual service categories. Shows up live on employee dashboards.</p>
+                </div>
+                <button
+                  onClick={() => {
+                    const current = editGoals.serviceTargets || [];
+                    setEditGoals({
+                      ...editGoals,
+                      serviceTargets: [...current, { name: '', targetAmount: 0 }]
+                    });
+                  }}
+                  className="bg-indigo-600 text-white text-xs font-black px-3 py-2 rounded-xl hover:bg-indigo-700 transition-all shadow-sm"
+                >
+                  + Add Service Target
+                </button>
+              </div>
+
+              {((editGoals.serviceTargets || []).length === 0) && (
+                <p className="text-gray-400 text-xs font-bold text-center py-4 bg-gray-50 rounded-2xl border border-dashed border-gray-250">No service-specific targets configured yet. Click "+ Add Service Target" to add.</p>
+              )}
+
+              <div className="space-y-3 mb-6">
+                {(editGoals.serviceTargets || []).map((target, idx) => (
+                  <div key={idx} className="flex items-center gap-3 bg-slate-50 rounded-2xl p-4 border border-slate-100 shadow-sm animate-slide-up">
+                    <span className="text-xs font-black text-gray-500 w-12 shrink-0">Service {idx + 1}</span>
+                    <input
+                      type="text"
+                      placeholder="Service Name (e.g. Trademark, FSSAI)"
+                      value={target.name}
+                      onChange={(e) => {
+                        const newTargets = [...(editGoals.serviceTargets || [])];
+                        newTargets[idx] = { ...newTargets[idx], name: e.target.value };
+                        setEditGoals({ ...editGoals, serviceTargets: newTargets });
+                      }}
+                      className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold text-gray-900 focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                    />
+                    <div className="flex items-center gap-1.5 flex-1">
+                      <span className="text-gray-400 text-sm font-bold">₹</span>
+                      <input
+                        type="number"
+                        placeholder="Target Amount (₹)"
+                        value={target.targetAmount || ''}
+                        min="0"
+                        onChange={(e) => {
+                          const newTargets = [...(editGoals.serviceTargets || [])];
+                          newTargets[idx] = { ...newTargets[idx], targetAmount: Number(e.target.value) };
+                          setEditGoals({ ...editGoals, serviceTargets: newTargets });
+                        }}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm font-black text-gray-900 focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newTargets = (editGoals.serviceTargets || []).filter((_, i) => i !== idx);
+                        setEditGoals({ ...editGoals, serviceTargets: newTargets });
+                      }}
+                      className="text-red-500 hover:text-red-700 font-black text-xl shrink-0 w-8 h-8 flex items-center justify-center bg-red-50 rounded-xl hover:bg-red-100 transition-all"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Save Button */}
             <button
               onClick={handleSaveGoals}

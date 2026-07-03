@@ -73,6 +73,12 @@ export interface SalesEntry {
   clientName: string;
   amount: number;      // ₹
   notes: string;
+  service?: string;    // Service category (e.g. "Trademark", "FSSAI")
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ServiceTarget {
+  name: string;        // e.g. "Trademark", "FSSAI"
+  targetAmount: number; // Target in ₹
 }

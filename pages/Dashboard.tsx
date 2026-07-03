@@ -48,6 +48,8 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
   const [totalTeamSales, setTotalTeamSales] = useState(0);
   // Per-employee sales for the race graph (admin only)
   const [salesByEmployee, setSalesByEmployee] = useState<Record<string, number>>({});
+  // Per-service sales total (for category specific target cards)
+  const [salesByService, setSalesByService] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const unsub = firebaseSalesService.subscribeToMonthlySales(yearMonthStr, (entries: any[]) => {
@@ -59,6 +61,14 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
         map[e.employeeId] = (map[e.employeeId] || 0) + (Number(e.amount) || 0);
       });
       setSalesByEmployee(map);
+
+      // Build per-service map for target cards
+      const serviceMap: Record<string, number> = {};
+      entries.forEach((e: any) => {
+        const serviceName = e.service || 'General/Other';
+        serviceMap[serviceName] = (serviceMap[serviceName] || 0) + (Number(e.amount) || 0);
+      });
+      setSalesByService(serviceMap);
     });
     return () => unsub();
   }, [yearMonthStr]);
@@ -280,6 +290,51 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                       <p className="text-indigo-200 text-[10px] font-bold">₹{targetAmount.toLocaleString('en-IN')}</p>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Per-Service Target Progress Cards */}
+              {monthlyGoals?.serviceTargets && monthlyGoals.serviceTargets.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {monthlyGoals.serviceTargets.map((st, idx) => {
+                    const achieved = salesByService[st.name] || 0;
+                    const target = st.targetAmount || 0;
+                    const pct = target > 0 ? Math.min(100, Math.round((achieved / target) * 100)) : 0;
+                    const remaining = Math.max(0, target - achieved);
+
+                    return (
+                      <div key={idx} className="bg-white rounded-3xl border border-gray-150 shadow-md p-6 relative overflow-hidden transition-all duration-200 hover:shadow-lg">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-50 rounded-full blur-2xl opacity-60" />
+                        <p className="text-indigo-600 font-black uppercase tracking-widest text-[9px] mb-2">💼 {st.name} Target</p>
+                        
+                        <div className="flex items-baseline justify-between mb-4">
+                          <span className="font-black text-2xl text-gray-800">
+                            ₹{achieved.toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[10px] font-bold text-gray-400">
+                            of ₹{target.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                          <div
+                            className={`h-3 rounded-full transition-all duration-1000 ${pct >= 100 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-purple-600'}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+
+                        <div className="flex justify-between items-center mt-2.5">
+                          <span className="text-[10px] font-bold text-gray-400">
+                            {pct}% Completed
+                          </span>
+                          <span className={`text-[10px] font-black ${remaining <= 0 ? 'text-emerald-600' : 'text-orange-500'}`}>
+                            {remaining <= 0 ? '🏆 Hitted!' : `₹${remaining.toLocaleString('en-IN')} left`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -556,6 +611,51 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                   <p className="text-[10px] font-bold text-gray-400">₹{targetAmount.toLocaleString('en-IN')}</p>
                 </div>
               </div>
+
+              {/* Per-Service Target Progress Cards (Employee View) */}
+              {monthlyGoals?.serviceTargets && monthlyGoals.serviceTargets.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {monthlyGoals.serviceTargets.map((st, idx) => {
+                    const achieved = salesByService[st.name] || 0;
+                    const target = st.targetAmount || 0;
+                    const pct = target > 0 ? Math.min(100, Math.round((achieved / target) * 100)) : 0;
+                    const remaining = Math.max(0, target - achieved);
+
+                    return (
+                      <div key={idx} className="bg-white rounded-3xl border border-gray-150 shadow-lg p-6 relative overflow-hidden transition-all duration-200 hover:shadow-xl">
+                        <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-50 rounded-full blur-2xl opacity-60" />
+                        <p className="text-indigo-600 font-black uppercase tracking-widest text-[9px] mb-2">💼 {st.name} Target</p>
+                        
+                        <div className="flex items-baseline justify-between mb-4">
+                          <span className="font-black text-2xl text-gray-800">
+                            ₹{achieved.toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-[10px] font-bold text-gray-400">
+                            of ₹{target.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                          <div
+                            className={`h-3 rounded-full transition-all duration-1000 ${pct >= 100 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-purple-600'}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+
+                        <div className="flex justify-between items-center mt-2.5">
+                          <span className="text-[10px] font-bold text-gray-400">
+                            {pct}% Completed
+                          </span>
+                          <span className={`text-[10px] font-black ${remaining <= 0 ? 'text-emerald-600' : 'text-orange-500'}`}>
+                            {remaining <= 0 ? '🏆 Hitted!' : `₹${remaining.toLocaleString('en-IN')} left`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

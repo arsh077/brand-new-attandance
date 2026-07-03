@@ -1,6 +1,6 @@
-// Firebase Monthly Goals & Employee of Month Service — Live Sync
 import { db } from './firebaseConfig';
 import { doc, setDoc, onSnapshot, Timestamp } from 'firebase/firestore';
+import { ServiceTarget } from '../types';
 
 export interface EmployeeOfMonth {
     id: string;
@@ -32,6 +32,7 @@ export interface MonthlyGoals {
     targetMonth: string;            // "YYYY-MM" e.g. "2026-05"
     employeeOfMonth: EmployeeOfMonth | null;
     specialTarget: SpecialTarget | null;  // Special/bonus target
+    serviceTargets?: ServiceTarget[];    // Dynamic per-service targets
     updatedAt?: any;
 }
 
@@ -39,7 +40,8 @@ export const DEFAULT_MONTHLY_GOALS: MonthlyGoals = {
     targetAmount: 0,
     targetMonth: '',
     employeeOfMonth: null,
-    specialTarget: null
+    specialTarget: null,
+    serviceTargets: []
 };
 
 class FirebaseTargetService {
