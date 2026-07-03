@@ -10,10 +10,12 @@ interface RealtimeAttendanceProps {
 
 interface LiveAttendance {
   employee: Employee;
-  status: 'CLOCKED_IN' | 'CLOCKED_OUT' | 'NOT_STARTED' | 'LATE' | 'HALFDAY';
+  status: 'CLOCKED_IN' | 'CLOCKED_OUT' | 'NOT_STARTED' | 'LATE' | 'HALFDAY' | 'ON_BREAK';
   clockIn?: string;
   clockOut?: string;
   duration?: string;
+  breakDuration?: string;
+  hasExceededBreak?: boolean;
 }
 
 const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, attendance, lateThreshold, halfDayThreshold }) => {
@@ -68,8 +70,27 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
         duration = calculateDuration(clockInTime, endTime);
       }
 
+      // Calculate break time
+      const previousBreakSeconds = (empAttendance.breakHistory || []).reduce((sum, b) => sum + (b.durationSeconds || 0), 0);
+      const isOnBreak = !!empAttendance.breakStart;
+      const currentBreakSeconds = empAttendance.breakStart
+        ? Math.max(0, Math.floor((currentTime.getTime() - new Date(empAttendance.breakStart).getTime()) / 1000))
+        : 0;
+      const totalBreakSeconds = previousBreakSeconds + currentBreakSeconds;
+      const breakLimitSeconds = 40 * 60; // 40 minutes
+
+      const formatBreakSecs = (secs: number) => {
+        const m = Math.floor(secs / 60);
+        const s = secs % 60;
+        return `${m}m ${s}s`;
+      };
+
+      const breakDurationStr = totalBreakSeconds > 0 ? formatBreakSecs(totalBreakSeconds) : '';
+      const hasExceeded = totalBreakSeconds > breakLimitSeconds;
+
       let status: LiveAttendance['status'] = 'CLOCKED_IN';
       if (hasClockOut) status = 'CLOCKED_OUT';
+      else if (isOnBreak) status = 'ON_BREAK';
       else if (isHalfDay) status = 'HALFDAY';
       else if (isLate) status = 'LATE';
 
@@ -78,13 +99,15 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
         status: status,
         clockIn: empAttendance.clockIn,
         clockOut: empAttendance.clockOut,
-        duration
+        duration,
+        breakDuration: breakDurationStr,
+        hasExceededBreak: hasExceeded
       };
     });
 
     // Sort: Clocked in first, then late, then clocked out, then not started
     liveAttendanceData.sort((a, b) => {
-      const order = { 'CLOCKED_IN': 1, 'LATE': 2, 'HALFDAY': 3, 'CLOCKED_OUT': 4, 'NOT_STARTED': 5 };
+      const order = { 'CLOCKED_IN': 1, 'LATE': 2, 'HALFDAY': 3, 'ON_BREAK': 4, 'CLOCKED_OUT': 5, 'NOT_STARTED': 6 };
       return order[a.status] - order[b.status];
     });
 
@@ -148,6 +171,7 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'CLOCKED_IN': return 'bg-green-100 text-green-700 border-green-300';
+      case 'ON_BREAK': return 'bg-amber-100 text-amber-700 border-amber-300';
       case 'LATE': return 'bg-orange-100 text-orange-700 border-orange-300';
       case 'HALFDAY': return 'bg-red-100 text-red-700 border-red-300';
       case 'CLOCKED_OUT': return 'bg-gray-100 text-gray-700 border-gray-300';
@@ -160,6 +184,8 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
     switch (status) {
       case 'CLOCKED_IN':
         return <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>;
+      case 'ON_BREAK':
+        return <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse"></div>;
       case 'LATE':
         return <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>;
       case 'HALFDAY':
@@ -174,6 +200,7 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
   const getStatusText = (status: string) => {
     switch (status) {
       case 'CLOCKED_IN': return 'Active Now';
+      case 'ON_BREAK': return 'On Break';
       case 'LATE': return 'Late Arrival';
       case 'HALFDAY': return 'Half Day';
       case 'CLOCKED_OUT': return 'Completed';
@@ -181,9 +208,10 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
     }
   };
 
-  const clockedInCount = liveData.filter(d => d.status === 'CLOCKED_IN' || d.status === 'LATE' || d.status === 'HALFDAY').length;
+  const clockedInCount = liveData.filter(d => d.status === 'CLOCKED_IN' || d.status === 'LATE' || d.status === 'HALFDAY' || d.status === 'ON_BREAK').length;
   const lateCount = liveData.filter(d => d.status === 'LATE' || d.status === 'HALFDAY').length;
   const completedCount = liveData.filter(d => d.status === 'CLOCKED_OUT').length;
+  const onBreakCount = liveData.filter(d => d.status === 'ON_BREAK').length;
 
   return (
     <div className="space-y-6">
@@ -232,15 +260,11 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
         <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Current Time</p>
-              <p className="text-xl font-black text-indigo-600 mt-1">
-                {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-              </p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">On Break</p>
+              <p className="text-3xl font-black text-amber-600 mt-1">{onBreakCount}</p>
             </div>
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+              <span className="text-xl">☕</span>
             </div>
           </div>
         </div>
@@ -279,8 +303,13 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-3">
                       {getStatusIcon(data.status)}
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full border ${getStatusColor(data.status)}`}>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                        data.status === 'ON_BREAK' && data.hasExceededBreak
+                          ? 'bg-rose-100 text-rose-700 border-rose-300 animate-pulse'
+                          : getStatusColor(data.status)
+                      }`}>
                         {getStatusText(data.status)}
+                        {data.status === 'ON_BREAK' && data.breakDuration && ` (${data.breakDuration})`}
                       </span>
                     </div>
                   </td>
@@ -301,9 +330,16 @@ const RealtimeAttendance: React.FC<RealtimeAttendanceProps> = ({ employees, atte
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm font-black text-indigo-600">
-                      {data.duration || '-'}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-black text-indigo-600">
+                        {data.duration || '-'}
+                      </span>
+                      {data.breakDuration && (
+                        <span className={`text-[10px] font-black mt-0.5 flex items-center gap-1 ${data.hasExceededBreak ? 'text-rose-500 animate-pulse' : 'text-amber-600'}`}>
+                          ☕ Break: {data.breakDuration} {data.hasExceededBreak && '⚠️'}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded">
