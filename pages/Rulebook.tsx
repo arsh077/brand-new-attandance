@@ -24,7 +24,7 @@ const DEFAULT_RULEBOOK: RulebookData = {
     content: [
       'The official reporting/login time is 10:35 AM.',
       'An additional 5-minute grace period will be provided for login.',
-      'If an employee is late 2 times, 1 day's salary will be deducted.'
+      "If an employee is late 2 times, 1 day's salary will be deducted."
     ]
   },
   rule2: {
@@ -32,7 +32,7 @@ const DEFAULT_RULEBOOK: RulebookData = {
     content: [
       'The official logout time is 6:30 PM.',
       'Leaving before the official logout time without prior approval will be considered an early logout.',
-      '2 instances of early logout will result in deduction of 1 day's salary.'
+      "2 instances of early logout will result in deduction of 1 day's salary."
     ]
   },
   rule3: {
@@ -40,7 +40,7 @@ const DEFAULT_RULEBOOK: RulebookData = {
     content: [
       'Taking leave on Monday or Saturday requires prior approval from the reporting authority.',
       'Unapproved leave taken on Monday or Saturday will be treated as a serious attendance violation.',
-      '2 days of leave taken on Monday/Saturday without approval will result in deduction of 2 days' salary.'
+      "2 days of leave taken on Monday/Saturday without approval will result in deduction of 2 days' salary."
     ]
   },
   rule4: {
@@ -668,7 +668,7 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
             © 2026 Legal Success India Private Limited. All rights reserved.
           </p>
           <p className="text-xs text-gray-400 font-medium mt-1">
-            Last Updated: {rulebookData.lastUpdated} • Version 1.0
+            Last Updated: January 2026 • Version 1.0
           </p>
         </div>
       </div>
