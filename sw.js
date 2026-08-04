@@ -48,8 +48,9 @@ self.addEventListener('fetch', (event) => {
         fetch(event.request)
             .then((fetchRes) => {
                 return caches.open(DYNAMIC_CACHE).then((cache) => {
-                    // Cache successful responses
-                    if (fetchRes.ok && event.request.method === 'GET') {
+                    // Cache successful GET requests with http/https schemes only
+                    const isHttp = event.request.url.startsWith('http');
+                    if (fetchRes.ok && event.request.method === 'GET' && isHttp) {
                         // Clone response because it can only be consumed once
                         cache.put(event.request.url, fetchRes.clone());
                     }
