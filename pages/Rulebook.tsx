@@ -7,33 +7,104 @@ interface RulebookProps {
   currentUser: Employee;
 }
 
+interface RulebookData {
+  rule1: { title: string; content: string[] };
+  rule2: { title: string; content: string[] };
+  rule3: { title: string; content: string[] };
+  rule4: { title: string; loginTime: string; gracePeriod: string; logoutTime: string };
+  rule5: { title: string; content: string[]; maxTime: string };
+  rule6: { title: string; halfDayTime: string };
+  importantNotice: string;
+  lastUpdated: string;
+}
+
+const DEFAULT_RULEBOOK: RulebookData = {
+  rule1: {
+    title: '⏰ Late Login Policy',
+    content: [
+      'The official reporting/login time is 10:35 AM.',
+      'An additional 5-minute grace period will be provided for login.',
+      'If an employee is late 2 times, 1 day's salary will be deducted.'
+    ]
+  },
+  rule2: {
+    title: '🚪 Early Logout Policy',
+    content: [
+      'The official logout time is 6:30 PM.',
+      'Leaving before the official logout time without prior approval will be considered an early logout.',
+      '2 instances of early logout will result in deduction of 1 day's salary.'
+    ]
+  },
+  rule3: {
+    title: '📅 Monday & Saturday Leave Policy',
+    content: [
+      'Taking leave on Monday or Saturday requires prior approval from the reporting authority.',
+      'Unapproved leave taken on Monday or Saturday will be treated as a serious attendance violation.',
+      '2 days of leave taken on Monday/Saturday without approval will result in deduction of 2 days' salary.'
+    ]
+  },
+  rule4: {
+    title: '🕐 Official Working Hours',
+    loginTime: '10:35 AM',
+    gracePeriod: '5 Minutes',
+    logoutTime: '6:30 PM'
+  },
+  rule5: {
+    title: '⏱️ Extended Working Hours Policy',
+    content: [
+      'If the assigned sales targets or required work are not completed within the scheduled working hours, management may extend the working time based on business requirements.',
+      'Employees are expected to cooperate and complete their assigned responsibilities.'
+    ],
+    maxTime: '7:00 PM'
+  },
+  rule6: {
+    title: '🌓 Half-Day Policy',
+    halfDayTime: '12:30 PM'
+  },
+  importantNotice: 'Attendance discipline is an essential part of maintaining a professional and productive workplace. All employees are required to strictly follow login time, logout time, attendance rules, and work commitments. Repeated violations of attendance policies may lead to salary deductions, performance review, and further disciplinary action as per company policy.',
+  lastUpdated: 'January 2026'
+};
+
 const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
   const [acknowledged, setAcknowledged] = useState(false);
   const [acknowledgedDate, setAcknowledgedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const isAdmin = currentUser.role === UserRole.ADMIN;
+  
+  // Admin editing states
+  const [editMode, setEditMode] = useState(false);
+  const [rulebookData, setRulebookData] = useState<RulebookData>(DEFAULT_RULEBOOK);
+  const [savingRules, setSavingRules] = useState(false);
 
-  // Check if user has already acknowledged
+  // Check if user has already acknowledged & load rulebook data
   useEffect(() => {
-    const checkAcknowledgment = async () => {
+    const loadData = async () => {
       try {
-        const docRef = doc(db, 'rulebook_acknowledgments', currentUser.id);
-        const docSnap = await getDoc(docRef);
+        // Load rulebook data
+        const rulebookRef = doc(db, 'system_settings', 'rulebook');
+        const rulebookSnap = await getDoc(rulebookRef);
+        if (rulebookSnap.exists()) {
+          setRulebookData(rulebookSnap.data() as RulebookData);
+        }
+
+        // Load acknowledgment status
+        const ackRef = doc(db, 'rulebook_acknowledgments', currentUser.id);
+        const ackSnap = await getDoc(ackRef);
         
-        if (docSnap.exists()) {
-          const data = docSnap.data();
+        if (ackSnap.exists()) {
+          const data = ackSnap.data();
           setAcknowledged(data.acknowledged || false);
           setAcknowledgedDate(data.acknowledgedDate || null);
         }
       } catch (error) {
-        console.error('Error fetching acknowledgment:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAcknowledgment();
+    loadData();
   }, [currentUser.id]);
 
   const handleAcknowledge = async () => {
@@ -72,6 +143,26 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
     }
   };
 
+  const handleSaveRules = async () => {
+    setSavingRules(true);
+    try {
+      await setDoc(doc(db, 'system_settings', 'rulebook'), {
+        ...rulebookData,
+        lastUpdated: new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }),
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser.name
+      });
+      
+      setEditMode(false);
+      alert('✅ Rulebook updated successfully! All employees will see the new rules.');
+    } catch (error) {
+      console.error('Error saving rulebook:', error);
+      alert('❌ Failed to save rulebook. Please try again.');
+    } finally {
+      setSavingRules(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -92,14 +183,44 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Company Rulebook</h1>
             <p className="text-gray-400 font-medium mt-1">Attendance & Working Hours Policy</p>
           </div>
-          {acknowledged && (
-            <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-xl border border-green-200">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm font-bold text-green-700">Acknowledged ✓</span>
-            </div>
-          )}
+          <div className="flex items-center space-x-3">
+            {acknowledged && !isAdmin && (
+              <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-xl border border-green-200">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-bold text-green-700">Acknowledged ✓</span>
+              </div>
+            )}
+            {isAdmin && (
+              <div className="flex items-center space-x-2">
+                {editMode ? (
+                  <>
+                    <button
+                      onClick={() => setEditMode(false)}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveRules}
+                      disabled={savingRules}
+                      className="px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-bold hover:from-green-700 hover:to-green-800 transition-all shadow-lg disabled:opacity-50"
+                    >
+                      {savingRules ? 'Saving...' : '💾 Save Changes'}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setEditMode(true)}
+                    className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+                  >
+                    ✏️ Edit Rulebook
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -131,17 +252,43 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
                 <span className="text-white text-xl font-black">1</span>
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-black text-orange-900 mb-3 flex items-center">
-                  ⏰ Late Login Policy
-                </h3>
-                <div className="space-y-2 text-gray-700">
-                  <p className="font-bold">• The official reporting/login time is <span className="text-orange-700 font-black">10:35 AM</span>.</p>
-                  <p className="font-bold">• An additional <span className="text-orange-700 font-black">5-minute grace period</span> will be provided for login.</p>
-                  <p className="font-bold">• If an employee is late <span className="text-red-700 font-black">2 times</span>, <span className="text-red-700 font-black">1 day's salary will be deducted</span>.</p>
-                </div>
-                <div className="mt-3 bg-orange-100 rounded-lg p-3 border border-orange-300">
-                  <p className="text-sm font-black text-orange-800">📌 Grace Period: 10:35 AM to 10:40 AM</p>
-                </div>
+                {editMode ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={rulebookData.rule1.title}
+                      onChange={(e) => setRulebookData({ ...rulebookData, rule1: { ...rulebookData.rule1, title: e.target.value } })}
+                      className="w-full px-4 py-2 border-2 border-orange-300 rounded-xl font-black text-orange-900 text-xl focus:outline-none focus:border-orange-500"
+                    />
+                    {rulebookData.rule1.content.map((line, idx) => (
+                      <textarea
+                        key={idx}
+                        value={line}
+                        onChange={(e) => {
+                          const newContent = [...rulebookData.rule1.content];
+                          newContent[idx] = e.target.value;
+                          setRulebookData({ ...rulebookData, rule1: { ...rulebookData.rule1, content: newContent } });
+                        }}
+                        rows={2}
+                        className="w-full px-4 py-2 border-2 border-orange-200 rounded-lg font-bold text-gray-700 focus:outline-none focus:border-orange-400"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-black text-orange-900 mb-3 flex items-center">
+                      {rulebookData.rule1.title}
+                    </h3>
+                    <div className="space-y-2 text-gray-700">
+                      {rulebookData.rule1.content.map((line, idx) => (
+                        <p key={idx} className="font-bold" dangerouslySetInnerHTML={{ __html: line.replace(/(\d+:\d+ [AP]M|HALFDAY|\d+ times?|\d+ day'?s?|\d+-minute)/g, '<span class="text-orange-700 font-black">$1</span>') }} />
+                      ))}
+                    </div>
+                    <div className="mt-3 bg-orange-100 rounded-lg p-3 border border-orange-300">
+                      <p className="text-sm font-black text-orange-800">📌 Grace Period: 10:35 AM to 10:40 AM</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -153,17 +300,43 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
                 <span className="text-white text-xl font-black">2</span>
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-black text-red-900 mb-3 flex items-center">
-                  🚪 Early Logout Policy
-                </h3>
-                <div className="space-y-2 text-gray-700">
-                  <p className="font-bold">• The official logout time is <span className="text-red-700 font-black">6:30 PM</span>.</p>
-                  <p className="font-bold">• Leaving before the official logout time without prior approval will be considered an <span className="text-red-700 font-black">early logout</span>.</p>
-                  <p className="font-bold">• <span className="text-red-700 font-black">2 instances</span> of early logout will result in deduction of <span className="text-red-700 font-black">1 day's salary</span>.</p>
-                </div>
-                <div className="mt-3 bg-red-100 rounded-lg p-3 border border-red-300">
-                  <p className="text-sm font-black text-red-800">⚠️ Prior approval required for early departure</p>
-                </div>
+                {editMode ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={rulebookData.rule2.title}
+                      onChange={(e) => setRulebookData({ ...rulebookData, rule2: { ...rulebookData.rule2, title: e.target.value } })}
+                      className="w-full px-4 py-2 border-2 border-red-300 rounded-xl font-black text-red-900 text-xl focus:outline-none focus:border-red-500"
+                    />
+                    {rulebookData.rule2.content.map((line, idx) => (
+                      <textarea
+                        key={idx}
+                        value={line}
+                        onChange={(e) => {
+                          const newContent = [...rulebookData.rule2.content];
+                          newContent[idx] = e.target.value;
+                          setRulebookData({ ...rulebookData, rule2: { ...rulebookData.rule2, content: newContent } });
+                        }}
+                        rows={2}
+                        className="w-full px-4 py-2 border-2 border-red-200 rounded-lg font-bold text-gray-700 focus:outline-none focus:border-red-400"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-black text-red-900 mb-3 flex items-center">
+                      {rulebookData.rule2.title}
+                    </h3>
+                    <div className="space-y-2 text-gray-700">
+                      {rulebookData.rule2.content.map((line, idx) => (
+                        <p key={idx} className="font-bold" dangerouslySetInnerHTML={{ __html: line.replace(/(\d+:\d+ [AP]M|HALFDAY|\d+ times?|\d+ day'?s?|\d+ instances?)/g, '<span class="text-red-700 font-black">$1</span>') }} />
+                      ))}
+                    </div>
+                    <div className="mt-3 bg-red-100 rounded-lg p-3 border border-red-300">
+                      <p className="text-sm font-black text-red-800">⚠️ Prior approval required for early departure</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -175,17 +348,43 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
                 <span className="text-white text-xl font-black">3</span>
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-black text-purple-900 mb-3 flex items-center">
-                  📅 Monday & Saturday Leave Policy
-                </h3>
-                <div className="space-y-2 text-gray-700">
-                  <p className="font-bold">• Taking leave on <span className="text-purple-700 font-black">Monday or Saturday</span> requires <span className="text-purple-700 font-black">prior approval</span> from the reporting authority.</p>
-                  <p className="font-bold">• Unapproved leave taken on Monday or Saturday will be treated as a <span className="text-red-700 font-black">serious attendance violation</span>.</p>
-                  <p className="font-bold">• <span className="text-red-700 font-black">2 days</span> of leave taken on Monday/Saturday without approval will result in deduction of <span className="text-red-700 font-black">2 days' salary</span>.</p>
-                </div>
-                <div className="mt-3 bg-purple-100 rounded-lg p-3 border border-purple-300">
-                  <p className="text-sm font-black text-purple-800">🚫 Mandatory approval for weekend bordering leaves</p>
-                </div>
+                {editMode ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={rulebookData.rule3.title}
+                      onChange={(e) => setRulebookData({ ...rulebookData, rule3: { ...rulebookData.rule3, title: e.target.value } })}
+                      className="w-full px-4 py-2 border-2 border-purple-300 rounded-xl font-black text-purple-900 text-xl focus:outline-none focus:border-purple-500"
+                    />
+                    {rulebookData.rule3.content.map((line, idx) => (
+                      <textarea
+                        key={idx}
+                        value={line}
+                        onChange={(e) => {
+                          const newContent = [...rulebookData.rule3.content];
+                          newContent[idx] = e.target.value;
+                          setRulebookData({ ...rulebookData, rule3: { ...rulebookData.rule3, content: newContent } });
+                        }}
+                        rows={2}
+                        className="w-full px-4 py-2 border-2 border-purple-200 rounded-lg font-bold text-gray-700 focus:outline-none focus:border-purple-400"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-black text-purple-900 mb-3 flex items-center">
+                      {rulebookData.rule3.title}
+                    </h3>
+                    <div className="space-y-2 text-gray-700">
+                      {rulebookData.rule3.content.map((line, idx) => (
+                        <p key={idx} className="font-bold" dangerouslySetInnerHTML={{ __html: line.replace(/(Monday|Saturday|\d+ day'?s?|prior approval)/gi, '<span class="text-purple-700 font-black">$1</span>') }} />
+                      ))}
+                    </div>
+                    <div className="mt-3 bg-purple-100 rounded-lg p-3 border border-purple-300">
+                      <p className="text-sm font-black text-purple-800">🚫 Mandatory approval for weekend bordering leaves</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -197,24 +396,66 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
                 <span className="text-white text-xl font-black">4</span>
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-black text-blue-900 mb-3 flex items-center">
-                  🕐 Official Working Hours
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                  <div className="bg-white rounded-xl p-4 border border-blue-200 shadow-sm">
-                    <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Login Time</p>
-                    <p className="text-2xl font-black text-blue-900">10:35 AM</p>
+                {editMode ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={rulebookData.rule4.title}
+                      onChange={(e) => setRulebookData({ ...rulebookData, rule4: { ...rulebookData.rule4, title: e.target.value } })}
+                      className="w-full px-4 py-2 border-2 border-blue-300 rounded-xl font-black text-blue-900 text-xl focus:outline-none focus:border-blue-500"
+                    />
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-blue-600 uppercase">Login Time</label>
+                        <input
+                          type="text"
+                          value={rulebookData.rule4.loginTime}
+                          onChange={(e) => setRulebookData({ ...rulebookData, rule4: { ...rulebookData.rule4, loginTime: e.target.value } })}
+                          className="w-full px-3 py-2 border-2 border-blue-200 rounded-lg font-black text-blue-900 focus:outline-none focus:border-blue-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-blue-600 uppercase">Grace Period</label>
+                        <input
+                          type="text"
+                          value={rulebookData.rule4.gracePeriod}
+                          onChange={(e) => setRulebookData({ ...rulebookData, rule4: { ...rulebookData.rule4, gracePeriod: e.target.value } })}
+                          className="w-full px-3 py-2 border-2 border-blue-200 rounded-lg font-black text-blue-900 focus:outline-none focus:border-blue-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-blue-600 uppercase">Logout Time</label>
+                        <input
+                          type="text"
+                          value={rulebookData.rule4.logoutTime}
+                          onChange={(e) => setRulebookData({ ...rulebookData, rule4: { ...rulebookData.rule4, logoutTime: e.target.value } })}
+                          className="w-full px-3 py-2 border-2 border-blue-200 rounded-lg font-black text-blue-900 focus:outline-none focus:border-blue-400"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-white rounded-xl p-4 border border-blue-200 shadow-sm">
-                    <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Grace Period</p>
-                    <p className="text-2xl font-black text-blue-900">5 Minutes</p>
-                  </div>
-                  <div className="bg-white rounded-xl p-4 border border-blue-200 shadow-sm">
-                    <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Logout Time</p>
-                    <p className="text-2xl font-black text-blue-900">6:30 PM</p>
-                  </div>
-                </div>
-                <p className="font-bold text-gray-700">All employees are required to <span className="text-blue-700 font-black">strictly follow</span> the assigned working hours.</p>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-black text-blue-900 mb-3 flex items-center">
+                      {rulebookData.rule4.title}
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                      <div className="bg-white rounded-xl p-4 border border-blue-200 shadow-sm">
+                        <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Login Time</p>
+                        <p className="text-2xl font-black text-blue-900">{rulebookData.rule4.loginTime}</p>
+                      </div>
+                      <div className="bg-white rounded-xl p-4 border border-blue-200 shadow-sm">
+                        <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Grace Period</p>
+                        <p className="text-2xl font-black text-blue-900">{rulebookData.rule4.gracePeriod}</p>
+                      </div>
+                      <div className="bg-white rounded-xl p-4 border border-blue-200 shadow-sm">
+                        <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Logout Time</p>
+                        <p className="text-2xl font-black text-blue-900">{rulebookData.rule4.logoutTime}</p>
+                      </div>
+                    </div>
+                    <p className="font-bold text-gray-700">All employees are required to <span className="text-blue-700 font-black">strictly follow</span> the assigned working hours.</p>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -226,17 +467,52 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
                 <span className="text-white text-xl font-black">5</span>
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-black text-amber-900 mb-3 flex items-center">
-                  ⏱️ Extended Working Hours Policy
-                </h3>
-                <div className="space-y-2 text-gray-700">
-                  <p className="font-bold">• If the assigned <span className="text-amber-700 font-black">sales targets or required work</span> are not completed within the scheduled working hours, management may extend the working time based on business requirements.</p>
-                  <p className="font-bold">• In such cases, employees may be required to continue working until:</p>
-                  <div className="ml-6 bg-white rounded-lg p-3 border border-amber-300 my-2">
-                    <p className="text-lg font-black text-amber-800">Maximum Extended Time: 7:00 PM</p>
+                {editMode ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={rulebookData.rule5.title}
+                      onChange={(e) => setRulebookData({ ...rulebookData, rule5: { ...rulebookData.rule5, title: e.target.value } })}
+                      className="w-full px-4 py-2 border-2 border-amber-300 rounded-xl font-black text-amber-900 text-xl focus:outline-none focus:border-amber-500"
+                    />
+                    {rulebookData.rule5.content.map((line, idx) => (
+                      <textarea
+                        key={idx}
+                        value={line}
+                        onChange={(e) => {
+                          const newContent = [...rulebookData.rule5.content];
+                          newContent[idx] = e.target.value;
+                          setRulebookData({ ...rulebookData, rule5: { ...rulebookData.rule5, content: newContent } });
+                        }}
+                        rows={3}
+                        className="w-full px-4 py-2 border-2 border-amber-200 rounded-lg font-bold text-gray-700 focus:outline-none focus:border-amber-400"
+                      />
+                    ))}
+                    <div>
+                      <label className="text-xs font-bold text-amber-600 uppercase">Maximum Extended Time</label>
+                      <input
+                        type="text"
+                        value={rulebookData.rule5.maxTime}
+                        onChange={(e) => setRulebookData({ ...rulebookData, rule5: { ...rulebookData.rule5, maxTime: e.target.value } })}
+                        className="w-full px-3 py-2 border-2 border-amber-200 rounded-lg font-black text-amber-900 focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
                   </div>
-                  <p className="font-bold">• Employees are expected to <span className="text-amber-700 font-black">cooperate and complete</span> their assigned responsibilities.</p>
-                </div>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-black text-amber-900 mb-3 flex items-center">
+                      {rulebookData.rule5.title}
+                    </h3>
+                    <div className="space-y-2 text-gray-700">
+                      {rulebookData.rule5.content.map((line, idx) => (
+                        <p key={idx} className="font-bold">{line}</p>
+                      ))}
+                      <div className="ml-6 bg-white rounded-lg p-3 border border-amber-300 my-2">
+                        <p className="text-lg font-black text-amber-800">Maximum Extended Time: {rulebookData.rule5.maxTime}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -248,15 +524,37 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
                 <span className="text-white text-xl font-black">6</span>
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-black text-yellow-900 mb-3 flex items-center">
-                  🌓 Half-Day Policy
-                </h3>
-                <div className="space-y-2 text-gray-700">
-                  <p className="font-bold">• If an employee logs in after <span className="text-yellow-700 font-black">12:30 PM</span>, the day will automatically be considered as a:</p>
-                  <div className="bg-yellow-100 rounded-lg p-4 border-2 border-yellow-400 my-2 text-center">
-                    <p className="text-2xl font-black text-yellow-800">HALF DAY</p>
+                {editMode ? (
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={rulebookData.rule6.title}
+                      onChange={(e) => setRulebookData({ ...rulebookData, rule6: { ...rulebookData.rule6, title: e.target.value } })}
+                      className="w-full px-4 py-2 border-2 border-yellow-300 rounded-xl font-black text-yellow-900 text-xl focus:outline-none focus:border-yellow-500"
+                    />
+                    <div>
+                      <label className="text-xs font-bold text-yellow-600 uppercase">Half-Day Threshold Time</label>
+                      <input
+                        type="text"
+                        value={rulebookData.rule6.halfDayTime}
+                        onChange={(e) => setRulebookData({ ...rulebookData, rule6: { ...rulebookData.rule6, halfDayTime: e.target.value } })}
+                        className="w-full px-3 py-2 border-2 border-yellow-200 rounded-lg font-black text-yellow-900 focus:outline-none focus:border-yellow-400"
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <h3 className="text-xl font-black text-yellow-900 mb-3 flex items-center">
+                      {rulebookData.rule6.title}
+                    </h3>
+                    <div className="space-y-2 text-gray-700">
+                      <p className="font-bold">• If an employee logs in after <span className="text-yellow-700 font-black">{rulebookData.rule6.halfDayTime}</span>, the day will automatically be considered as a:</p>
+                      <div className="bg-yellow-100 rounded-lg p-4 border-2 border-yellow-400 my-2 text-center">
+                        <p className="text-2xl font-black text-yellow-800">HALF DAY</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -269,12 +567,18 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-black mb-3">Important Notice</h3>
-                <p className="font-bold leading-relaxed">
-                  Attendance discipline is an essential part of maintaining a professional and productive workplace. All employees are required to strictly follow <span className="underline">login time</span>, <span className="underline">logout time</span>, <span className="underline">attendance rules</span>, and <span className="underline">work commitments</span>.
-                </p>
-                <p className="font-bold mt-3 text-red-100">
-                  Repeated violations of attendance policies may lead to <span className="text-white font-black">salary deductions</span>, <span className="text-white font-black">performance review</span>, and further <span className="text-white font-black">disciplinary action</span> as per company policy.
-                </p>
+                {editMode ? (
+                  <textarea
+                    value={rulebookData.importantNotice}
+                    onChange={(e) => setRulebookData({ ...rulebookData, importantNotice: e.target.value })}
+                    rows={5}
+                    className="w-full px-4 py-3 border-2 border-white/30 rounded-xl font-bold text-gray-800 focus:outline-none focus:border-white bg-white/90"
+                  />
+                ) : (
+                  <p className="font-bold leading-relaxed">
+                    {rulebookData.importantNotice}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -364,7 +668,7 @@ const Rulebook: React.FC<RulebookProps> = ({ currentUser }) => {
             © 2026 Legal Success India Private Limited. All rights reserved.
           </p>
           <p className="text-xs text-gray-400 font-medium mt-1">
-            Last Updated: January 2026 • Version 1.0
+            Last Updated: {rulebookData.lastUpdated} • Version 1.0
           </p>
         </div>
       </div>
