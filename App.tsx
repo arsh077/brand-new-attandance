@@ -18,6 +18,7 @@ import AnalyticsDashboard from './components/Analytics/AnalyticsDashboard';
 import AdminPanel from './pages/AdminPanel';
 import Login from './pages/Login';
 import Sales from './pages/Sales';
+import Rulebook from './pages/Rulebook';
 import Settings from './pages/Settings';
 import EmployeePayroll from './pages/EmployeePayroll';
 import NotificationBell from './components/NotificationBell';
@@ -604,6 +605,8 @@ const App: React.FC = () => {
           attendance={attendance}
           monthlyGoals={monthlyGoals}
         />;
+      case 'rulebook':
+        return <Rulebook currentUser={currentUser} />;
       case 'settings':
         return <Settings currentUser={currentUser} />;
       default:
