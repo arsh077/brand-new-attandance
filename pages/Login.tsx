@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserRole } from '../types';
 import { ICONS } from '../constants';
 import { firebaseAuthService } from '../services/firebaseAuthService';
 import { firebaseEmployeeService } from '../services/firebaseEmployeeService';
+import { firebaseSettingsService } from '../services/firebaseSettingsService';
+import { firebaseLocationPermissionService } from '../services/firebaseLocationPermissionService';
+import { geoLocationService } from '../services/geoLocationService';
 
 interface LoginProps {
   onLogin: (role: UserRole, email: string, employee?: any) => void;
@@ -14,10 +17,32 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Geo-location states
+  const [checkingLocation, setCheckingLocation] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<'checking' | 'verified' | 'failed' | null>(null);
+  const [locationMessage, setLocationMessage] = useState('');
+  const [geoEnabled, setGeoEnabled] = useState(false);
+
+  // Check if geo-location is enabled on mount
+  useEffect(() => {
+    const checkGeoSettings = async () => {
+      try {
+        const settings = await firebaseSettingsService.getSettings();
+        setGeoEnabled(settings.geoLocationEnabled || false);
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        setGeoEnabled(false);
+      }
+    };
+    checkGeoSettings();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLocationStatus(null);
+    setLocationMessage('');
     setLoading(true);
 
     try {
@@ -41,7 +66,48 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         throw new Error(`Your account is registered as ${employee.role}. Please select the correct role.`);
       }
 
-      // Step 4: Success
+      // Step 4: GEO-LOCATION VERIFICATION (if enabled)
+      if (geoEnabled && employee.role !== UserRole.ADMIN) {
+        setCheckingLocation(true);
+        setLocationStatus('checking');
+        setLocationMessage('📍 Verifying your location...');
+
+        // Check if employee has remote login permission
+        const permission = await firebaseLocationPermissionService.getPermission(employee.id);
+        
+        if (permission && permission.allowRemoteLogin) {
+          // Remote login allowed by admin
+          console.log('✅ Remote login permitted for:', employee.name);
+          setLocationStatus('verified');
+          setLocationMessage(`✅ Remote login authorized by admin`);
+        } else {
+          // Must be at office - verify GPS location
+          const settings = await firebaseSettingsService.getSettings();
+          const officeLocation = settings.officeLocation;
+          
+          const locationCheck = await geoLocationService.verifyOfficeLocation(officeLocation);
+          
+          if (!locationCheck.allowed) {
+            await firebaseAuthService.logout();
+            setLocationStatus('failed');
+            setLocationMessage(locationCheck.reason || 'Location verification failed');
+            throw new Error(
+              locationCheck.error || 
+              `🚫 Login Blocked: ${locationCheck.reason || 'You must be at office premises to login.'}\n\n` +
+              (locationCheck.distance ? `Distance from office: ${locationCheck.distance}m\n` : '') +
+              `Contact admin for remote login access.`
+            );
+          }
+          
+          setLocationStatus('verified');
+          setLocationMessage(`✅ Office location verified (${locationCheck.distance}m)`);
+          console.log('✅ Location verified:', locationCheck);
+        }
+        
+        setCheckingLocation(false);
+      }
+
+      // Step 5: Success
       onLogin(employee.role, employee.email, employee);
 
     } catch (err: any) {
@@ -57,6 +123,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
     } finally {
       setLoading(false);
+      setCheckingLocation(false);
     }
   };
 
@@ -161,24 +228,47 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             />
           </div>
 
-          <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-            <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-1">Authorized Access Only</p>
-            <p className="text-xs text-indigo-600 font-bold">Only registered employees can access this portal.</p>
-          </div>
+          {geoEnabled && selectedRole !== UserRole.ADMIN && (
+            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200">
+              <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">📍 Location Verification Enabled</p>
+              <p className="text-xs text-amber-600 font-bold">You must be at office premises to login, unless admin has granted remote access.</p>
+            </div>
+          )}
 
+          {!geoEnabled && (
+            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+              <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-1">Authorized Access Only</p>
+              <p className="text-xs text-indigo-600 font-bold">Only registered employees can access this portal.</p>
+            </div>
+          )}
+
+          {checkingLocation && (
+            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-200">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-xs text-blue-700 font-bold">{locationMessage}</p>
+              </div>
+            </div>
+          )}
+
+          {locationStatus === 'verified' && !checkingLocation && (
+            <div className="p-4 bg-green-50 rounded-2xl border border-green-200">
+              <p className="text-xs text-green-700 font-bold">{locationMessage}</p>
+            </div>
+          )}
 
           {error && (
-            <div className="p-4 bg-red-50 rounded-2xl border border-red-200 animate-pulse">
-              <p className="text-xs text-red-700 font-bold">❌ {error}</p>
+            <div className="p-4 bg-red-50 rounded-2xl border border-red-200">
+              <p className="text-xs text-red-700 font-bold whitespace-pre-line">❌ {error}</p>
             </div>
           )}
 
           <button
             type="submit"
-            disabled={loading}
-            className={`w-full bg-indigo-600 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all cursor-pointer ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            disabled={loading || checkingLocation}
+            className={`w-full bg-indigo-600 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all cursor-pointer ${(loading || checkingLocation) ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {loading ? 'Signing In...' : 'Secure Sign In'}
+            {checkingLocation ? '📍 Verifying Location...' : loading ? 'Signing In...' : 'Secure Sign In'}
           </button>
         </form>
       </div>

@@ -4,6 +4,7 @@ import { AUTHORIZED_USERS } from '../constants';
 import { firebaseEmployeeService } from '../services/firebaseEmployeeService';
 import { firebaseAuthService } from '../services/firebaseAuthService';
 import { MonthlyGoals, DEFAULT_MONTHLY_GOALS } from '../services/firebaseTargetService';
+import LocationControlSection from '../components/LocationControlSection';
 
 interface SystemSettings {
   companyName: string;
@@ -249,6 +250,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
           { id: 'users', label: 'User Management', icon: '👥' },
           { id: 'monthly-goals', label: 'Monthly Goals', icon: '🎯' },
           { id: 'personal-targets', label: 'Personal Targets', icon: '👤' },
+          { id: 'location', label: 'Location Control', icon: '📍' },
           { id: 'settings', label: 'System Settings', icon: '⚙️' },
           { id: 'security', label: 'Security', icon: '🔒' },
           { id: 'backup', label: 'Data Backup', icon: '💾' }
@@ -963,6 +965,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
               })}
           </div>
         </div>
+      )}
+
+      {/* Location Control Section */}
+      {activeSection === 'location' && (
+        <LocationControlSection 
+          employees={employees}
+          systemSettings={systemSettings}
+          onUpdateSettings={onUpdateSettings}
+        />
       )}
 
       {/* System Settings Section */}

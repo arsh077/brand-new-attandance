@@ -1,6 +1,14 @@
 import { db } from './firebaseConfig';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
+export interface OfficeLocation {
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    radiusMeters: number;
+}
+
 export interface SystemSettings {
     companyName: string;
     workingHours: { start: string; end: string };
@@ -8,15 +16,25 @@ export interface SystemSettings {
     halfDayThreshold: string;
     weeklyOffs: string[];
     holidays: { date: string; name: string }[];
+    officeLocation?: OfficeLocation;
+    geoLocationEnabled?: boolean; // Master toggle for geo-location feature
 }
 
 export const DEFAULT_SETTINGS: SystemSettings = {
     companyName: 'Legal Success India',
     workingHours: { start: '10:00', end: '18:30' },
     lateThreshold: '10:40',
-    halfDayThreshold: '14:00', // Default half-day threshold
+    halfDayThreshold: '14:00',
     weeklyOffs: ['Sunday'],
-    holidays: []
+    holidays: [],
+    officeLocation: {
+        name: 'Legal Success India - Main Office',
+        address: '2 Number, Sah Aman Lane, Kolkata 700023',
+        latitude: 22.5726, // Placeholder - update via admin panel
+        longitude: 88.3639, // Placeholder
+        radiusMeters: 1 // STRICT 1 meter radius
+    },
+    geoLocationEnabled: true // Feature enabled by default
 };
 
 class FirebaseSettingsService {
