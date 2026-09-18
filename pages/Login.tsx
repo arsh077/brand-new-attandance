@@ -6,12 +6,14 @@ import { firebaseEmployeeService } from '../services/firebaseEmployeeService';
 import { firebaseSettingsService } from '../services/firebaseSettingsService';
 import { firebaseLocationPermissionService } from '../services/firebaseLocationPermissionService';
 import { geoLocationService } from '../services/geoLocationService';
+import { isMobileDevice } from '../services/deviceUtils';
 
 interface LoginProps {
   onLogin: (role: UserRole, email: string, employee?: any) => void;
+  systemSettings?: any;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, systemSettings }) => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -64,6 +66,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (selectedRole && employee.role !== selectedRole) {
         await firebaseAuthService.logout();
         throw new Error(`Your account is registered as ${employee.role}. Please select the correct role.`);
+      }
+
+      // Step 3.5: Mobile Device Restriction Check
+      const shouldBlockMobile = systemSettings?.blockMobileAccess !== false;
+      if (shouldBlockMobile && isMobileDevice() && employee.role !== UserRole.ADMIN) {
+        await firebaseAuthService.logout();
+        throw new Error('🚫 Access Restricted: Mobile devices (including Computer/Desktop Mode in mobile browsers) are blocked. Please log in from a Desktop or Laptop computer.');
       }
 
       // Step 4: GEO-LOCATION VERIFICATION (if enabled)
@@ -235,7 +244,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           )}
 
-          {!geoEnabled && (
+          {isMobileDevice() && systemSettings?.blockMobileAccess !== false && (
+            <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-left">
+              <p className="text-xs text-amber-800 font-bold flex items-center gap-1.5">
+                <span>📱</span> Mobile Device Detected
+              </p>
+              <p className="text-[11px] text-amber-700 mt-1 font-medium leading-relaxed">
+                Mobile access (including Desktop Mode in mobile browsers) is restricted by Admin. Please use a Desktop or Laptop computer.
+              </p>
+            </div>
+          )}
+
+          {!geoEnabled && (!isMobileDevice() || systemSettings?.blockMobileAccess === false) && (
             <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
               <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-1">Authorized Access Only</p>
               <p className="text-xs text-indigo-600 font-bold">Only registered employees can access this portal.</p>

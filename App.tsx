@@ -26,6 +26,7 @@ import BirthdayPopup from './components/BirthdayPopup';
 import FestivalPopup from './components/FestivalPopup';
 import { firebaseTargetService, MonthlyGoals, DEFAULT_MONTHLY_GOALS } from './services/firebaseTargetService';
 import EmployeeOfMonthPopup from './components/EmployeeOfMonthPopup';
+import { isMobileDevice } from './services/deviceUtils';
 
 const App: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>(() => {
@@ -473,7 +474,33 @@ const App: React.FC = () => {
   }, []);
 
   if (!currentUser) {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} systemSettings={systemSettings} />;
+  }
+
+  // Active Session Guard: Block mobile devices for logged in employees if mobile access is restricted
+  if (currentUser.role !== UserRole.ADMIN && isMobileDevice() && systemSettings.blockMobileAccess !== false) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6 text-center">
+        <div className="max-w-md bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-2xl animate-fade-in">
+          <div className="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-3xl flex items-center justify-center mx-auto mb-6 text-4xl shadow-inner border border-amber-500/30">
+            💻
+          </div>
+          <h2 className="text-2xl font-black mb-2 tracking-tight">Desktop Computer Required</h2>
+          <p className="text-gray-300 text-xs mb-6 font-medium leading-relaxed">
+            Portal access on mobile devices (including Desktop Mode in mobile browsers) has been restricted by the Administrator.
+          </p>
+          <div className="p-4 bg-slate-900/80 rounded-2xl text-xs text-amber-400 font-bold border border-amber-500/20 mb-6">
+            ⚠️ Please open this portal on a legitimate Desktop or Laptop computer to continue.
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl uppercase tracking-widest text-xs transition-all cursor-pointer shadow-lg shadow-red-900/50"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const renderContent = () => {

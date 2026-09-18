@@ -18,6 +18,7 @@ export interface SystemSettings {
     holidays: { date: string; name: string }[];
     officeLocation?: OfficeLocation;
     geoLocationEnabled?: boolean; // Master toggle for geo-location feature
+    blockMobileAccess?: boolean;
 }
 
 export const DEFAULT_SETTINGS: SystemSettings = {
@@ -34,7 +35,8 @@ export const DEFAULT_SETTINGS: SystemSettings = {
         longitude: 88.3639, // Placeholder
         radiusMeters: 1 // STRICT 1 meter radius
     },
-    geoLocationEnabled: true // Feature enabled by default
+    geoLocationEnabled: true, // Feature enabled by default
+    blockMobileAccess: true
 };
 
 class FirebaseSettingsService {

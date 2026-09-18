@@ -13,6 +13,7 @@ interface SystemSettings {
   halfDayThreshold: string;
   weeklyOffs: string[];
   holidays: { date: string; name: string }[];
+  blockMobileAccess?: boolean;
 }
 
 interface AdminPanelProps {
@@ -45,7 +46,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
     lateThreshold: '10:40',
     halfDayThreshold: '14:00',
     weeklyOffs: ['Sunday'],
-    holidays: []
+    holidays: [],
+    blockMobileAccess: true
   });
 
   // Sync state with props when they update (from Firebase)
@@ -1039,9 +1041,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ employees, systemSettings: prop
               </div>
             </div>
 
+            <div className="p-5 bg-indigo-50/70 rounded-2xl border border-indigo-100 flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-indigo-900 flex items-center gap-2 text-sm">
+                  <span>📱</span> Restrict Mobile & Smartphone Access
+                </h4>
+                <p className="text-xs text-indigo-700 mt-1 font-medium max-w-lg leading-relaxed">
+                  Enforces login strictly from Desktop / Laptop computers. Blocks smartphones even if "Desktop Site / Computer Mode" is enabled in mobile browsers.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer ml-4">
+                <input
+                  type="checkbox"
+                  checked={systemSettings.blockMobileAccess !== false}
+                  onChange={(e) => setSystemSettings({ ...systemSettings, blockMobileAccess: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
+            </div>
+
             <button
               onClick={handleUpdateSettings}
-              className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black hover:bg-indigo-700"
+              className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 cursor-pointer"
             >
               💾 Save System Settings
             </button>
